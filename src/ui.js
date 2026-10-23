@@ -4,7 +4,7 @@ import { S } from "./state.js";
 import { $, W, H, OY, DR } from "./util.js";
 import { A, IM } from "./assets.js";
 import { SV, save } from "./save.js";
-import { sfx } from "./audio.js";
+import { sfx, playMusic } from "./audio.js";
 import { BD, BM } from "./bindings.js";
 import { checkSynergies } from "./synergies.js";
 import { g, spr } from "./renderer.js";
@@ -29,7 +29,10 @@ export function initLayout() {
     if (!t) return;
     const a = t.dataset.act;
     if (a === "pick") pick(+t.dataset.i);
-    else if (a === "start") start();
+    else if (a === "start") {
+      playMusic()
+      start();
+    }
     else if (a === "stay") stay();
   });
 }
@@ -40,7 +43,15 @@ export function toast(t) {
 let cho = [];
 export function pickScr() {
   S.mode = "pick";
-  const pool = BD.filter((b) => !S.own.includes(b.id) && (!b.lock || SV.w > 0));
+
+  const pool = BD.filter(
+    (b) =>
+      !S.own.includes(b.id) &&
+      (!b.lock || SV.w > 0) &&
+      !(S.own.includes("glass") && b.id === "twin") &&
+      !(S.own.includes("twin") && b.id === "glass"),
+  );
+
   cho = pool.sort(() => Math.random() - 0.5).slice(0, 3);
   if (!cho.length) {
     S.hp = S.mh;

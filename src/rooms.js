@@ -26,7 +26,7 @@ export function gen() {
     return r;
   };
   add(0, 0, 0).t = "start";
-  while (L.length < 8) {
+  while (L.length < 12) { // 12 rooms
     const p = L[RI(L.length)],
       d = DR[RI(4)],
       nx = p.x + d.dx,

@@ -6,6 +6,7 @@ import { loadAssets } from "./assets.js";
 import { startLoop, start } from "./game.js";
 import { S } from "./state.js";
 import { SV } from "./save.js";
+
 initLayout();
 initInput();
 if (new URLSearchParams(location.search).has("debug"))
