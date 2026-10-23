@@ -33,8 +33,23 @@ export function mvP(dx, dy) {
       }
   }
 }
-export function hurt(n, fx, fy) {
+// Heal n hp. Blood caps healing at 75% of max health. Returns 1 if anything was healed.
+export function heal(n) {
+  const cap = has("blood") ? Math.floor(S.mh * 0.75) : S.mh;
+  if (S.hp >= cap) return 0;
+  S.hp = Math.min(cap, S.hp + n);
+  return 1;
+}
+// mk = the attacker was Watcher-marked (unmarked attackers hit 25% harder while Watcher is active).
+export function hurt(n, mk) {
   if (S.iv > 0 || S.mode != "play") return;
+  if (has("ascend") && S.asS > 0) {
+    S.asS = 0;
+    S.iv = 0.6;
+    sfx(500, 0.3, "sine", 0.08, 600);
+    part(S.x, S.y, "#ffd36b", 12);
+    return;
+  }
   if (has("aegis") && S.sh) {
     S.sh = 0;
     S.shT = 9;
@@ -43,7 +58,9 @@ export function hurt(n, fx, fy) {
     part(S.x, S.y, "#7fd4ff", 10);
     return;
   }
+  if (has("watch") && !mk) n *= 1.25;
   S.hp -= n * (has("curse") ? 2 : 1);
+  S.dmgRoom = 1; // Ascension: this room no longer counts as clean
   S.iv = 1.1;
   S.shake = 5;
   sfx(110, 0.25, "sawtooth", 0.08, -60);
@@ -95,8 +112,7 @@ export function updatePlayer(s, dt) {
 export function updatePickups(s) {
   s.pk = s.pk.filter((p) => {
     if (D(p.x, p.y, s.x, s.y) < 9) {
-      if (s.hp < s.mh) {
-        s.hp++;
+      if (heal(1)) {
         sfx(700, 0.1, "sine", 0.05, 300);
         return 0;
       }

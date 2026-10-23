@@ -12,6 +12,16 @@ export const CB = {
   "fat+grav": "Heavy Orbit",
   "hot+twin": "Spray Paint",
   "curse+twin": "Glass Cannon Array",
+  "chrono+frost": "Absolute Zero",
+  "decay+thunder": "Toxic Storm",
+  "thunder+watch": "Marked For Death",
+  "thunder+twin": "Storm Volley",
+  "frost+void": "Cold Singularity",
+  "decay+void": "Plague Well",
+  "echo+reflect": "Hall of Mirrors",
+  "blood+curse": "Death Wish",
+  "aegis+ascend": "Double Guard",
+  "blood+twin": "Bleeding Edge",
 };
 // Call right after a Binding was added to S.own.
 export function checkSynergies(id) {

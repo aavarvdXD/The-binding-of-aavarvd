@@ -2,20 +2,22 @@
 import { R, D } from "./util.js";
 import { S } from "./state.js";
 import { sfx } from "./audio.js";
-import { has } from "./bindings.js";
+import { has, enemySpeed, tryDodge } from "./bindings.js";
 import { blk } from "./rooms.js";
 import { eshot } from "./projectiles.js";
 import { part } from "./effects.js";
-import { hurt } from "./player.js";
+import { hurt, heal } from "./player.js";
 import { updateBoss } from "./bosses.js";
 // Enemy factory. e.sp = spawn-in delay (invulnerable), e.st = AI state, e.aw = mimic awake.
 export function mk(t, x, y) {
   const H = { skull: 3, octo: 3, spirit: 2, mimic: 7, boss: 70 }[t];
+  const hp = H + (t == "boss" ? 0 : Math.floor(S.r.dp / 2));
   return {
     t,
     x,
     y,
-    hp: H + (t == "boss" ? 0 : Math.floor(S.r.dp / 2)),
+    hp,
+    mhp: hp, // max hp (Watcher reveal draws health bars)
     r: { boss: 20, mimic: 7 }[t] || 6,
     sp: 0.7,
     fl: 0,
@@ -35,14 +37,17 @@ export function hitE(e, s) {
   return 1;
 }
 // AI + contact damage for every enemy (the boss branch delegates to updateBoss).
-export function updateEnemies(s, dt) {
+// dt0 = real frame time; each enemy gets its own scaled dt (Chronos slow, Frost slow / freeze).
+export function updateEnemies(s, dt0) {
   for (const e of s.es) {
-    e.fl -= dt;
-    e.ect -= dt;
+    const dt = dt0 * enemySpeed(e, s);
+    e.fl -= dt0;
+    e.ect -= dt0;
     if (e.sp > 0) {
       e.sp -= dt;
       continue;
     }
+    if (e.fr > 0) continue; // frozen solid: no movement, attacks or contact damage
     const dx = s.x - e.x,
       dy = s.y - e.y,
       d = Math.hypot(dx, dy) || 1,
@@ -66,7 +71,7 @@ export function updateEnemies(s, dt) {
       );
       if ((e.tm -= dt) <= 0) {
         e.tm = R(1.4, 2.2);
-        eshot(e.x, e.y, an, 70);
+        eshot(e.x, e.y, an, 70, e);
         sfx(300, 0.1, "sawtooth", 0.03, -100);
       }
     } else if (e.t == "spirit") {
@@ -85,7 +90,7 @@ export function updateEnemies(s, dt) {
           e.y = R(28, 148);
           e.st = 0;
           e.tm = R(1.4, 2);
-          eshot(e.x, e.y, Math.atan2(s.y - e.y, s.x - e.x), 80);
+          eshot(e.x, e.y, Math.atan2(s.y - e.y, s.x - e.x), 80, e);
           part(e.x, e.y, "#bfefff", 8);
           s.gl = 0.1;
         }
@@ -100,6 +105,12 @@ export function updateEnemies(s, dt) {
           e.vy = (dy / d) * 130;
           e.tm = R(1.1, 1.6);
           e.lt = 0.35;
+          e.dg = 0;
+        }
+        // Reflection: a lunge that passes close without connecting counts as dodged.
+        if (e.lt > 0 && !e.dg && d < 22 && d > e.r + 6) {
+          e.dg = 1;
+          tryDodge();
         }
         if (e.lt > 0) {
           e.lt -= dt;
@@ -114,8 +125,8 @@ export function updateEnemies(s, dt) {
       (e.t != "mimic" || e.aw) &&
       e.st != 1
     )
-      hurt(1);
-    if (e.t == "boss" && d < 22) hurt(1);
+      hurt(1, e.mk > 0);
+    if (e.t == "boss" && d < 22) hurt(1, e.mk > 0);
   }
 }
 // Remove dead enemies: explosion, drops, Red Tithe heal.
@@ -134,8 +145,10 @@ export function reapEnemies(s) {
       s.fx.push({ x: e.x, y: e.y, t: 0, big: e.t == "boss" });
       s.shake = e.t == "boss" ? 10 : 2;
       sfx(160, 0.2, "sawtooth", 0.07, -100);
-      if (has("leech") && Math.random() < 0.3 && s.hp < s.mh) s.hp++;
-      if (Math.random() < 0.1) s.pk.push({ x: e.x, y: e.y });
+      if (has("leech") && Math.random() < 0.3) heal(1);
+      // Fortune: a lucky room drops hearts twice as often.
+      if (Math.random() < (has("fortune") && s.r.fz === 1 ? 0.2 : 0.1))
+        s.pk.push({ x: e.x, y: e.y });
     }
   s.es = s.es.filter((e) => !e.dead);
 }

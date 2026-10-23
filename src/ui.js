@@ -6,6 +6,7 @@ import { A, IM } from "./assets.js";
 import { SV, save } from "./save.js";
 import { sfx, playMusic } from "./audio.js";
 import { BD, BM } from "./bindings.js";
+import { heal } from "./player.js";
 import { checkSynergies } from "./synergies.js";
 import { g, spr } from "./renderer.js";
 import { start } from "./game.js";
@@ -54,7 +55,8 @@ export function pickScr() {
 
   cho = pool.sort(() => Math.random() - 0.5).slice(0, 3);
   if (!cho.length) {
-    S.hp = S.mh;
+    heal(S.mh);
+    S.picks = 1;
     S.mode = "play";
     return;
   }
@@ -90,6 +92,18 @@ export function pick(i) {
   checkSynergies(b.id);
   if (b.id == "aegis") {
     S.sh = 1;
+  }
+  if (b.id == "void") {
+    // Void drawback: permanently lower max health (hearts shown in the HUD shrink with it).
+    S.mh = Math.max(2, S.mh - 2);
+    S.hp = Math.min(S.hp, S.mh);
+  }
+  if (S.picks > 1) {
+    // Fortune jackpot room: choose again.
+    S.picks--;
+    S.mode = "clr";
+    toast("DOUBLE LOOT: PICK AGAIN");
+    setTimeout(() => pickScr(), 500);
   }
 }
 export function deadScr() {
@@ -132,14 +146,26 @@ export function drawHUD(g, s) {
   g.fillStyle = "#3b2470";
   g.fillRect(0, OY - 1, W, 1);
   for (let i = 0; i < s.mh; i++) {
-    g.globalAlpha = i < s.hp ? 1 : 0.2;
+    g.globalAlpha = Math.max(0.2, Math.min(1, s.hp - i)); // partial hearts dim (Watcher can cause fractional damage)
     spr("heart", 0, 0, 9, 8, 9 + i * 10, 10, 1);
   }
   g.globalAlpha = 1;
   s.own.forEach((id, i) => {
-    const x = 8 + i * 12;
+    const x = 8 + i * (s.own.length > 15 ? Math.floor(180 / s.own.length) : 12); // squeeze icons if many Bindings are owned
     g.globalAlpha = s.dis[id] > 0 ? 0.25 : 1;
     g.drawImage(IM[BM[id].ic], 0, 0, 16, 16, x, 13, 10, 10);
+    // charge bars: Chronos (next slow), Thunder (charged = full), Ascension (shield time left)
+    let p = null,
+      pc = "#7fd4ff";
+    if (id == "chrono") p = s.slow > 0 ? 1 : 1 - s.chT / 7;
+    else if (id == "thunder") (p = s.thR ? 1 : 1 - s.thT / 6), (pc = "#ffe066");
+    else if (id == "ascend") (p = s.asS > 0 ? s.asS / 25 : 0), (pc = "#ffd36b");
+    if (p !== null && s.dis[id] == null) {
+      g.fillStyle = "#000";
+      g.fillRect(x, 22, 10, 1);
+      g.fillStyle = pc;
+      g.fillRect(x, 22, 10 * Math.max(0, Math.min(1, p)), 1);
+    }
     if (s.dis[id] > 0) {
       g.fillStyle = "#f35";
       g.fillRect(x, 18, 10, 1);

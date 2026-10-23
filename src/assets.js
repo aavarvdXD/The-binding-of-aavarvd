@@ -1,6 +1,6 @@
 // Sprite manifest and loader. Every image is a real file under assets/ (paths are relative to index.html,
 // so they work from a GitHub Pages sub-path or custom domain).
-// Keys are the short names used by renderer/ui code. i0..i9 are the Binding icons, in BD order (see bindings.js).
+// Keys are the short names used by renderer/ui code. i0..i19 are the Binding icons, in BD order (see bindings.js).
 export const A = {
   dz: "assets/tiles/pixel_dungeon_tileset.png",
   pl: "assets/sprites/player_ninja_dark.png",
@@ -27,6 +27,16 @@ export const A = {
   i7: "assets/icons/binding_paper_aegis.png",
   i8: "assets/icons/binding_red_tithe.png",
   i9: "assets/icons/binding_bug_report.png",
+  i10: "assets/icons/binding_chronos.png",
+  i11: "assets/icons/binding_blood.png",
+  i12: "assets/icons/binding_thunder.png",
+  i13: "assets/icons/binding_reflection.png",
+  i14: "assets/icons/binding_decay.png",
+  i15: "assets/icons/binding_fortune.png",
+  i16: "assets/icons/binding_frost.png",
+  i17: "assets/icons/binding_void.png",
+  i18: "assets/icons/binding_ascension.png",
+  i19: "assets/icons/binding_watcher.png",
 };
 export const FT = [176, 192]; // floor tile coordinates inside ninja_floor_tileset.png
 export const IM = {};

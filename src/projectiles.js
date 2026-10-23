@@ -2,23 +2,42 @@
 import { S } from "./state.js";
 import { R, D } from "./util.js";
 import { sfx } from "./audio.js";
-import { has } from "./bindings.js";
+import {
+  has,
+  fireDelay,
+  volleyDamage,
+  damageEnemy,
+  chain,
+  maybeHole,
+  tryDodge,
+  shotSpeed,
+} from "./bindings.js";
 import { blk } from "./rooms.js";
 import { part } from "./effects.js";
 import { hitE } from "./enemies.js";
 import { hurt } from "./player.js";
-// Fire one volley toward angle a. Twin/Heavy/Hot/Pinball/Bug Report modify count, damage, speed, spread, bounces.
+// Player attack: sets the cooldown, remembers the angle (Reflection clones repeat it), consumes a Thunder charge.
 export function fire(a) {
+  const charged = has("thunder") && S.thR;
+  if (charged) S.thR = 0;
+  S.fd = fireDelay();
+  S.lastA = a;
+  volley(S.x, S.y, a, { charged });
+  sfx(has("fat") ? 120 : 380, 0.08, "square", 0.04, -150);
+  if (charged) sfx(900, 0.1, "sawtooth", 0.04, -500);
+}
+// One volley from (x,y) toward angle a - used by the player and by Reflection clones.
+// Twin/Heavy/Frenzy/Rebound and every damage multiplier (see volleyDamage) apply. o.charged = Thunder shot (lt flag).
+export function volley(x, y, a, o = {}) {
   const fat = has("fat"),
-    n = has("twin") ? 3 : 1;
-  S.fd = (has("hot") ? 0.2 : 0.34) * (fat ? 1.9 : 1);
-  let dm = 1 * (fat ? 2.2 : 1) * (n > 1 ? 0.6 : 1) * (has("curse") ? 1.7 : 1);
+    n = has("twin") ? 3 : 1,
+    dm = volleyDamage(n);
   for (let i = 0; i < n; i++) {
     const an = a + (i - (n - 1) / 2) * 0.22 + (has("hot") ? R(-0.14, 0.14) : 0),
       sp = fat ? 95 : 170;
     S.sh_.push({
-      x: S.x,
-      y: S.y,
+      x,
+      y,
       vx: Math.cos(an) * sp,
       vy: Math.sin(an) * sp,
       dmg: dm,
@@ -28,9 +47,9 @@ export function fire(a) {
       gen: 0,
       h: [],
       ec: 0,
+      lt: o.charged ? 1 : 0,
     });
   }
-  sfx(fat ? 120 : 380, 0.08, "square", 0.04, -150);
 }
 // Glass Engine: 3 shards (only from non-shard shots, or from echoes).
 export function shatter(s, x, y) {
@@ -73,8 +92,16 @@ export function kill(s) {
     });
   s.dead = 1;
 }
-export function eshot(x, y, a, sp = 70) {
-  S.eb.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, l: 4 });
+// Enemy shot. src = firing enemy (Watcher: shots from marked enemies count as marked).
+export function eshot(x, y, a, sp = 70, src) {
+  S.eb.push({
+    x,
+    y,
+    vx: Math.cos(a) * sp,
+    vy: Math.sin(a) * sp,
+    l: 4,
+    mk: src && src.mk > 0 ? 1 : 0,
+  });
 }
 // Move player shots (homing, wall hits, bounces), then resolve hits against enemies.
 export function updateProjectiles(s, dt) {
@@ -147,11 +174,15 @@ export function updateProjectiles(s, dt) {
           e.ect = 0.2;
         }
         hitE(e, b);
-        e.hp -= b.dmg;
-        e.fl = 0.1;
+        damageEnemy(e, b.dmg);
         part(b.x, b.y, "#fff", 3);
         sfx(260, 0.05, "square", 0.04);
         if (e.t == "mimic") e.aw = 1;
+        if (b.lt && !b.ec) {
+          b.lt = 0;
+          chain(e, b.dmg * 1.5, b.x, b.y); // Thunder: charged shot arcs to nearby enemies
+        }
+        if (!b.ec) maybeHole(b.x, b.y);
         if (!b.ec) {
           if (has("glass")) shatter(b, b.x, b.y);
           kill(b);
@@ -163,15 +194,26 @@ export function updateProjectiles(s, dt) {
   s.sh_ = s.sh_.filter((b) => !b.dead);
   if (s.sh_.length > 300) s.sh_.splice(0, 60);
 }
-export function updateEnemyShots(s, dt) {
+export function updateEnemyShots(s, dt0) {
+  const dt = dt0 * shotSpeed(s); // Chronos slows enemy shots
   for (const b of s.eb) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.l -= dt;
     if (blk(b.x, b.y, 0) || b.l <= 0) b.dead = 1;
-    else if (D(b.x, b.y, s.x, s.y) < 6) {
-      b.dead = 1;
-      hurt(1);
+    else {
+      const d = D(b.x, b.y, s.x, s.y);
+      if (d < 6) {
+        b.dead = 1;
+        hurt(1, b.mk);
+      } else {
+        // Reflection: a shot that came close and is now moving away was dodged.
+        if (d < 16) b.mn = Math.min(b.mn ?? 99, d);
+        if (b.mn < 16 && d > b.mn + 1 && !b.gz) {
+          b.gz = 1;
+          tryDodge();
+        }
+      }
     }
   }
   s.eb = s.eb.filter((b) => !b.dead);

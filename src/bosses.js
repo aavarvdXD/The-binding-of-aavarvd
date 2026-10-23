@@ -14,8 +14,8 @@ export function updateBoss(e, s, dt, { step, dx, dy, d, an }) {
     e.st++;
     if (e.st % 2) {
       const o = R(0, 6);
-      for (let i = 0; i < 12; i++) eshot(e.x, e.y + 8, o + i * 0.5236, 60);
-    } else for (let i = -2; i <= 2; i++) eshot(e.x, e.y + 8, an + i * 0.2, 85);
+      for (let i = 0; i < 12; i++) eshot(e.x, e.y + 8, o + i * 0.5236, 60, e);
+    } else for (let i = -2; i <= 2; i++) eshot(e.x, e.y + 8, an + i * 0.2, 85, e);
     sfx(90, 0.2, "sawtooth", 0.07, -30);
   }
   if ((s.aT -= dt) <= 0) {
@@ -26,7 +26,7 @@ export function updateBoss(e, s, dt, { step, dx, dy, d, an }) {
     if (o.length) {
       const k = o[RI(o.length)];
       s.dis[k] = 6.5;
-      toast("AUDIT: " + BM[k].n.toUpperCase() + " OFF");
+      toast("AUDIT: " + BM[k].sn.toUpperCase() + " OFF");
     } else toast("AUDIT FAILED. NO BINDINGS.");
     sfx(70, 0.5, "sawtooth", 0.1, -20);
   }

@@ -4,6 +4,7 @@ import { DR, R, RI, D, W, H } from "./util.js";
 import { SV, save } from "./save.js";
 import { sfx } from "./audio.js";
 import { mk } from "./enemies.js";
+import { has, ASCEND_LIFE } from "./bindings.js";
 import { toast, pickScr, stairScr } from "./ui.js";
 // Random-walk layout of 8 rooms; the boss room is the one farthest (by door distance) from the spawn room.
 export function gen() {
@@ -73,6 +74,10 @@ export function enter(r, di) {
   S.pk = [];
   S.es = [];
   S.fx = [];
+  S.cl = [];
+  S.bh = [];
+  S.arc = [];
+  S.dmgRoom = 0; // Ascension: damage taken in this room
   if (di != null) {
     const d = DR[di];
     S.x = d.dx == 0 ? 120 : d.dx > 0 ? 218 : 22;
@@ -89,7 +94,14 @@ export function enter(r, di) {
     S.aT = 3;
     return;
   }
-  const n = 3 + Math.min(3, dp) + RI(2);
+  // Fortune: the first time a fight room is entered it may be lucky (double loot) or an ambush (extra enemies).
+  if (has("fortune") && r.fz === undefined) {
+    const k = Math.random();
+    r.fz = k < 0.28 ? 1 : k < 0.5 ? 2 : 0;
+    if (r.fz === 1) toast("LUCKY ROOM: DOUBLE LOOT");
+    if (r.fz === 2) toast("AMBUSH: EXTRA ENEMIES");
+  }
+  const n = 3 + Math.min(3, dp) + RI(2) + (r.fz === 2 ? 3 : 0);
   for (let i = 0; i < n; i++) {
     const k = Math.random();
     let t = "skull";
@@ -159,6 +171,10 @@ export function checkRoomClear(s) {
     s.r.clr = 1;
     s.r.open = true;
     sfx(520, 0.3, "triangle", 0.06, 300);
+    if (has("ascend") && !s.dmgRoom) {
+      s.asS = ASCEND_LIFE; // clean clear: temporary shield that absorbs the next hit
+      toast("ASCENSION SHIELD");
+    }
     if (s.r.t == "boss") {
       s.won = 1;
       toast("THE AUDITOR FALLS");
@@ -170,6 +186,7 @@ export function checkRoomClear(s) {
       sfx(300, 0.6, "triangle", 0.08, 400);
     } else {
       toast("ROOM CLEARED");
+      s.picks = has("fortune") && s.r.fz === 1 ? 2 : 1; // Fortune jackpot: choose two Bindings
       s.mode = "clr";
       setTimeout(() => pickScr(), 700);
     }

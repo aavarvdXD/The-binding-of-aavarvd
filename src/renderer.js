@@ -84,6 +84,28 @@ export function draw() {
     g.fillRect(112, 48, 16, 16);
     g.drawImage(IM.dz, 144, 48, 16, 16, 112, 48, 16, 16);
   }
+  // Void: black holes (faint pull radius, spinning arcs, dark core)
+  for (const h of s.bh) {
+    g.save();
+    g.translate(h.x, h.y);
+    g.fillStyle = "rgba(106,63,208,0.12)";
+    g.beginPath();
+    g.arc(0, 0, 56, 0, 6.3);
+    g.fill();
+    g.strokeStyle = "#9b6bff";
+    g.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const a0 = tt * (5 - i) + i * 2;
+      g.beginPath();
+      g.arc(0, 0, 8 + i * 5 + Math.sin(tt * 6 + i), a0, a0 + 2.2);
+      g.stroke();
+    }
+    g.fillStyle = "#07040c";
+    g.beginPath();
+    g.arc(0, 0, 5 + Math.sin(tt * 9), 0, 6.3);
+    g.fill();
+    g.restore();
+  }
   for (const p of s.pk)
     spr("heart", 0, 0, 9, 8, p.x, p.y + Math.sin(tt * 5) * 1.5, 1.2);
   const ent = [];
@@ -94,8 +116,14 @@ export function draw() {
         g.save();
         if (e.sp > 0) {
           g.globalAlpha = Math.floor(tt * 14) % 2 ? 0.5 : 0.15;
-        } else g.globalAlpha = e.al;
+        } else
+          g.globalAlpha =
+            s.rev > 0 && has("watch") ? Math.max(e.al, 0.9) : e.al; // Watcher reveal shows hidden Glitches
         if (e.fl > 0) g.filter = "brightness(3)";
+        else if (e.fr > 0)
+          g.filter = "hue-rotate(150deg) saturate(1.6) brightness(1.5)"; // frozen
+        else if (e.fz > 0) g.filter = "hue-rotate(150deg) brightness(1.15)"; // chilled
+        else if (e.po > 0) g.filter = "hue-rotate(75deg) saturate(1.4)"; // poisoned
         if (e.t == "boss")
           spr(
             e.fl > 0 ? "bosshit" : "boss",
@@ -118,6 +146,46 @@ export function draw() {
           );
         else spr(e.t, e.dir * 16, fr * 16, 16, 16, e.x, e.y);
         g.restore();
+        if (e.mk > 0 && has("watch")) {
+          // Watcher mark: pulsing red ring with tick marks
+          const rr = e.r + 4 + Math.sin(tt * 8);
+          g.strokeStyle = "#ff3355";
+          g.lineWidth = 1;
+          g.beginPath();
+          g.arc(e.x, e.y, rr, 0, 6.3);
+          g.stroke();
+          g.fillStyle = "#ff3355";
+          g.fillRect(e.x - 1, e.y - rr - 3, 2, 3);
+          g.fillRect(e.x - 1, e.y + rr, 2, 3);
+          g.fillRect(e.x - rr - 3, e.y - 1, 3, 2);
+          g.fillRect(e.x + rr, e.y - 1, 3, 2);
+        }
+        if (s.rev > 0 && has("watch")) {
+          // Watcher reveal: outline + health bar on every enemy
+          g.strokeStyle = "#7fe8ff";
+          g.globalAlpha = Math.min(1, s.rev * 2);
+          g.beginPath();
+          g.arc(e.x, e.y, e.r + 2, 0, 6.3);
+          g.stroke();
+          g.fillStyle = "#000a";
+          g.fillRect(e.x - 7, e.y - e.r - 8, 14, 3);
+          g.fillStyle = "#7fe8ff";
+          g.fillRect(e.x - 6, e.y - e.r - 7, (12 * Math.max(0, e.hp)) / (e.mhp || 1), 1);
+          g.globalAlpha = 1;
+        }
+      },
+    ]),
+  );
+  // Reflection clones: translucent blue copies of the player
+  s.cl.forEach((c) =>
+    ent.push([
+      c.y,
+      () => {
+        g.save();
+        g.globalAlpha = 0.55 * Math.min(1, (c.l - c.t) * 2);
+        g.filter = "hue-rotate(170deg) brightness(1.5)";
+        spr("pl", s.face * 16, (Math.floor(tt * 14) % 2 ? 4 : 0) * 16, 16, 16, c.x, c.y - 2);
+        g.restore();
       },
     ]),
   );
@@ -135,6 +203,19 @@ export function draw() {
         s.x,
         s.y - 2,
       );
+      if (has("ascend") && s.asS > 0) {
+        g.strokeStyle = "#ffd36b";
+        g.globalAlpha = 0.6 + 0.3 * Math.sin(tt * 6);
+        g.beginPath();
+        g.arc(s.x, s.y - 1, 12, 0, 6.3);
+        g.stroke();
+        g.globalAlpha = 1;
+      }
+      if (has("thunder") && s.thR) {
+        // Thunder charged: crackling spark
+        g.fillStyle = "#ffe066";
+        g.fillRect(s.x + Math.round(R(-7, 7)), s.y + Math.round(R(-9, 5)), 2, 2);
+      }
       if (has("aegis") && s.sh) {
         g.strokeStyle = "#7fd4ff";
         g.globalAlpha = 0.7;
@@ -170,8 +251,32 @@ export function draw() {
   }
   for (const b of s.eb)
     spr("fire", (Math.floor(tt * 10) % 4) * 16, 0, 16, 16, b.x, b.y);
+  // Thunder: chain lightning arcs (jagged, fade out)
+  for (const a of s.arc) {
+    g.globalAlpha = 1 - a.t / 0.25;
+    g.lineWidth = 1.5;
+    for (const col of ["#ffe066", "#ffffff"]) {
+      g.strokeStyle = col;
+      g.beginPath();
+      a.pts.forEach((p, i) => {
+        if (i == 0) return g.moveTo(a.pts[0].x, a.pts[0].y);
+        const q = a.pts[i - 1],
+          m = { x: (q.x + p.x) / 2 + R(-4, 4), y: (q.y + p.y) / 2 + R(-4, 4) };
+        g.lineTo(m.x, m.y);
+        g.lineTo(p.x, p.y);
+      });
+      g.stroke();
+      g.lineWidth = 0.7;
+    }
+    g.globalAlpha = 1;
+  }
   drawParticles(g, s);
   drawExplosions(g, s);
+  if (has("chrono") && s.slow > 0) {
+    // Chronos: cold blue tint while time is slowed
+    g.fillStyle = "rgba(90,150,255,0.13)";
+    g.fillRect(0, 0, W, H);
+  }
   g.restore();
   // glitch slices
   drawGlitch(g, cv, s);

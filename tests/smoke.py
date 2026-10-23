@@ -15,7 +15,7 @@ with sync_playwright() as p:
     pg.goto(URL);pg.wait_for_timeout(1000)
     check(pg.evaluate("getComputedStyle(document.getElementById('ov')).display")=='flex','title screen shown')
     pg.click('text=ENTER THE UNWRITTEN');pg.wait_for_timeout(300)
-    check(pg.evaluate("BOV.S.mode")=='play' and pg.evaluate("BOV.S.rs.length")==8,'run starts with 8 rooms')
+    check(pg.evaluate("BOV.S.mode")=='play' and pg.evaluate("BOV.S.rs.length")==12,'run starts with 12 rooms')
     # clear a fight room -> pick screen -> click a card
     pg.evaluate("(()=>{const S=BOV.S;const i=S.r.nb.findIndex(n=>n);S.r.open=true;S.x=120;S.y=88;if(i==0)S.y=4;else if(i==1)S.y=172;else if(i==2)S.x=4;else S.x=236})()")
     pg.wait_for_timeout(300);check(pg.evaluate("BOV.S.r.t")=='fight','door transition into a fight room')

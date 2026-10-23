@@ -26,6 +26,8 @@ export function updateEffects(s, dt) {
   s.ps = s.ps.filter((p) => p.l > 0);
   for (const f of s.fx) f.t += dt;
   s.fx = s.fx.filter((f) => f.t < 0.6);
+  for (const a of s.arc) a.t += dt;
+  s.arc = s.arc.filter((a) => a.t < 0.25);
   s.shake *= 0.88;
   if (s.gl > 0) s.gl -= dt;
   s.msg.forEach((m) => (m.l -= dt));

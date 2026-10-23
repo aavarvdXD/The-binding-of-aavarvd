@@ -13,3 +13,4 @@ Add `?debug` to the URL to get `window.BOV` (`BOV.S` = live run state, `BOV.SV` 
     pip install playwright && playwright install chromium
     python3 -m http.server 8000 &
     python3 tests/smoke.py http://localhost:8000     # menus, door/room flow, Binding picks, stairs, death, saves
+    python3 tests/bindings_test.py http://localhost:8000   # all 20 Bindings: names, icons, effects, drawbacks
