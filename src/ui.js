@@ -5,7 +5,7 @@ import { $, W, H, OY, DR } from "./util.js";
 import { A, IM } from "./assets.js";
 import { SV, save } from "./save.js";
 import { sfx, playMusic } from "./audio.js";
-import { BD, BM } from "./bindings.js";
+import { BD, BM, MAX_BINDINGS } from "./bindings.js";
 import { heal } from "./player.js";
 import { checkSynergies } from "./synergies.js";
 import { g, spr } from "./renderer.js";
@@ -13,6 +13,12 @@ import { start } from "./game.js";
 const ov = $("ov");
 export function hideOverlay() {
   ov.style.display = "none";
+}
+// Enter = press the first button of the open overlay (title / death / stairs), so menus work without a mouse.
+export function activatePrimary() {
+  if (ov.style.display !== "flex" || (S && S.mode === "pick")) return;
+  const t = ov.querySelector("[data-act]");
+  if (t) t.click();
 }
 // Integer-ish scaling of the 240x200 canvas to the window.
 export function initLayout() {
@@ -35,15 +41,21 @@ export function initLayout() {
       start();
     }
     else if (a === "stay") stay();
+    else if (a === "skip") skip();
+    else if (a === "swap") swap(+t.dataset.i);
+    else if (a === "back") renderChoice();
   });
 }
 export function toast(t) {
   S.msg.push({ t, l: 2.4 });
 }
-// Binding choice after a room is cleared.
-let cho = [];
+// Binding choice after a room is cleared. With MAX_BINDINGS equipped, taking a new Binding means replacing an equipped one
+// (second screen) and a SKIP button keeps the current loadout. cho = the 3 offered, pend = the one chosen for replacing.
+let cho = [],
+  pend = null;
 export function pickScr() {
   S.mode = "pick";
+  pend = null;
 
   const pool = BD.filter(
     (b) =>
@@ -60,21 +72,90 @@ export function pickScr() {
     S.mode = "play";
     return;
   }
+  renderChoice();
+}
+function renderChoice() {
+  pend = null;
+  const full = S.own.length >= MAX_BINDINGS;
   ov.innerHTML =
-    '<h1 style="font-size:calc(var(--s)*6px)">CHOOSE A BINDING</h1><p>Fragments of a broken rule. Press 1-3 or click.</p><div class="row">' +
+    '<h1 style="font-size:calc(var(--s)*6px)">CHOOSE A BINDING</h1><p>' +
+    (full
+      ? `Loadout full (${MAX_BINDINGS}/${MAX_BINDINGS}): taking one replaces an equipped Binding. Press 1-3 or click.`
+      : "Fragments of a broken rule. Press 1-3 or click.") +
+    '</p><div class="row">' +
     cho
       .map(
         (b, i) =>
           `<div class="card" data-act="pick" data-i="${i}"><img src="${A[b.ic]}"><b>${b.n}</b><span>${b.d}</span><span>[${i + 1}]</span></div>`,
       )
       .join("") +
-    "</div>";
+    "</div>" +
+    (full ? '<div class="row"><button data-act="skip">SKIP [ESC]</button></div>' : "");
   ov.style.display = "flex";
 }
-// Apply the chosen Binding (cards or keys 1-3).
+// Second screen (loadout full): which equipped Binding does pend replace?
+function renderReplace() {
+  ov.innerHTML =
+    `<h1 style="font-size:calc(var(--s)*6px)">REPLACE WHICH?</h1><p>${pend.n} takes the place of one of your Bindings. Press 1-${S.own.length} or click.</p><div class="row">` +
+    S.own
+      .map(
+        (id, j) =>
+          `<div class="card sm" data-act="swap" data-i="${j}"><img src="${A[BM[id].ic]}"><b>${BM[id].n}</b><span>[${j + 1}]</span></div>`,
+      )
+      .join("") +
+    '</div><div class="row"><button data-act="back">BACK [ESC]</button><button data-act="skip">SKIP</button></div>';
+}
+// Offered card i was chosen (cards or keys 1-3).
 export function pick(i) {
   const b = cho[i];
-  if (!b || S.mode != "pick") return;
+  if (!b || S.mode != "pick" || pend) return;
+  // Shards and Twins exclude each other: taking one already swaps out the other, so no extra choice is needed.
+  const other = b.id == "glass" ? "twin" : b.id == "twin" ? "glass" : null;
+  if (S.own.length >= MAX_BINDINGS && !(other && S.own.includes(other))) {
+    pend = b;
+    renderReplace();
+    return;
+  }
+  applyBinding(b);
+}
+// Equipped Binding j is replaced by the pending one.
+export function swap(j) {
+  if (!pend || S.mode != "pick" || S.own[j] === undefined) return;
+  const old = S.own[j];
+  S.own.splice(j, 1);
+  if (old == "void") S.mh += 2; // Void's max-health drawback goes away with it
+  toast(BM[old].sn.toUpperCase() + " REPLACED");
+  const b = pend;
+  pend = null;
+  applyBinding(b);
+}
+// Keep the current loadout (counts as using this pick).
+export function skip() {
+  if (S.mode != "pick") return;
+  pend = null;
+  ov.style.display = "none";
+  S.mode = "play";
+  afterPick();
+}
+// Keyboard on the choice screens: 1-3 / 1-4 select, Esc = skip (offer) or back (replace screen).
+export function pickKey(k) {
+  if (pend) {
+    if (k == "Escape") renderChoice();
+    else if (/^[1-4]$/.test(k)) swap(+k - 1);
+  } else if (k == "Escape") {
+    if (S.own.length >= MAX_BINDINGS) skip();
+  } else if (/^[1-3]$/.test(k)) pick(+k - 1);
+}
+// Fortune jackpot room: choose again after the first pick (or skip).
+function afterPick() {
+  if (S.picks > 1) {
+    S.picks--;
+    S.mode = "clr";
+    toast("DOUBLE LOOT: PICK AGAIN");
+    setTimeout(() => pickScr(), 500);
+  }
+}
+function applyBinding(b) {
   if (b.id == "glass" || b.id == "twin") {
     const other = b.id == "glass" ? "twin" : "glass";
     if (S.own.includes(other)) {
@@ -98,13 +179,7 @@ export function pick(i) {
     S.mh = Math.max(2, S.mh - 2);
     S.hp = Math.min(S.hp, S.mh);
   }
-  if (S.picks > 1) {
-    // Fortune jackpot room: choose again.
-    S.picks--;
-    S.mode = "clr";
-    toast("DOUBLE LOOT: PICK AGAIN");
-    setTimeout(() => pickScr(), 500);
-  }
+  afterPick();
 }
 export function deadScr() {
   ov.innerHTML = `<h1>YOU ARE UNWRITTEN</h1><p>Rooms cleared: ${S.rs.filter((r) => r.clr).length} / ${S.rs.length} &middot; Kills: ${S.kills}</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ") || "none"}</p><p>Synergies found: ${SV.c.join(", ") || "none yet"}</p><div class="row"><button data-act="start">TRY AGAIN [R]</button></div>`;
@@ -112,7 +187,7 @@ export function deadScr() {
 }
 export function stairScr() {
   sfx(200, 0.5, "sine", 0.08, 400);
-  ov.innerHTML = `<h1 style="color:#7fd4ff">THE STAIRS DESCEND</h1><p>Floor I is broken open. Floor II &mdash; The Distortion &mdash; has not been written yet.</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ") || "none"}</p><div class="row"><button data-act="stay">KEEP EXPLORING</button><button data-act="start">NEW RUN</button></div>`;
+  ov.innerHTML = `<h1 style="color:#7fd4ff">THE STAIRS DESCEND</h1><p>Floor I is broken open. Floor II &mdash; The Distortion &mdash; has not been written yet.</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ") || "none"}</p><div class="row"><button data-act="stay">KEEP EXPLORING [ENTER]</button><button data-act="start">NEW RUN [R]</button></div>`;
   ov.style.display = "flex";
 }
 export function stay() {
@@ -120,18 +195,9 @@ export function stay() {
   S.y = 92;
   S.mode = "play";
 }
-// NOTE: not called anywhere since the stairs replaced the old victory screen; kept for reference.
-export function winScr() {
-  const first = SV.w == 0;
-  SV.w++;
-  save();
-  S.mode = "win";
-  ov.innerHTML = `<h1 style="color:#ffd36b">THE AUDIT IS OVER</h1><p>Floor I is broken open. The Distortion waits below.</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ")}</p>${first ? '<p style="color:#7fd4ff">UNLOCKED: Pinball Law, Bug Report</p>' : ""}<div class="row"><button data-act="start">NEW RUN [R]</button></div>`;
-  ov.style.display = "flex";
-}
 export function showTitle() {
   ov.innerHTML =
-    '<h1>THE BINDING<br>OF AAVARVD</h1><p>You are trapped in the Unwritten, a world built from broken rules.<br>Collect Bindings. Combine them. Break the game.</p><p>WASD move &middot; Mouse aim &middot; Hold click to fire<br>(Arrow keys also fire)</p><div class="row"><button data-act="start">ENTER THE UNWRITTEN</button></div><p>' +
+    '<h1>THE BINDING<br>OF AAVARVD</h1><p>You are trapped in the Unwritten, a world built from broken rules.<br>Collect Bindings. Combine them. Break the game.</p><p>WASD move &middot; Arrow keys aim + fire &middot; Space fires<br>(Mouse aim + click also work)</p><div class="row"><button data-act="start">ENTER THE UNWRITTEN [ENTER]</button></div><p>' +
     (SV.w ? "Boss defeated x" + SV.w + " &middot; " : "") +
     "Synergies found: " +
     SV.c.length +
@@ -247,6 +313,6 @@ export function drawHUD(g, s) {
   if (s.mode == "play" && s.r.t == "start" && !s.own.length && !s.won) {
     g.fillStyle = "#bdb2d6";
     g.textAlign = "center";
-    g.fillText("WASD move  CLICK fire", 120, OY + H - 14);
+    g.fillText("WASD move  ARROWS fire", 120, OY + H - 14);
   }
 }

@@ -165,6 +165,20 @@ export function checkStairs(s) {
   }
   return false;
 }
+// The ONLY place a boss victory is recorded: sets s.won (guard: once per run), bumps the persistent counter SV.w once,
+// announces the Pinball/Bug unlock on the first ever win (the unlock itself is SV.w>0, checked in ui.js pickScr),
+// and points the player back to the spawn room, where the stairs appear (rendered while s.won; triggered by checkStairs).
+export function onBossDefeated(s) {
+  if (s.won) return;
+  s.won = 1;
+  const first = SV.w === 0;
+  SV.w++;
+  save();
+  toast("THE AUDITOR FALLS");
+  if (first) setTimeout(() => toast("UNLOCKED: REBOUND, BUGS"), 1300);
+  setTimeout(() => toast("GO BACK TO THE SPAWN ROOM"), 2600);
+  sfx(300, 0.6, "triangle", 0.08, 400);
+}
 // All enemies dead -> open doors; boss clear sets s.won; normal rooms offer a Binding.
 export function checkRoomClear(s) {
   if (!s.r.clr && s.mode == "play" && s.es.length == 0 && s.r.t != "start") {
@@ -176,14 +190,7 @@ export function checkRoomClear(s) {
       toast("ASCENSION SHIELD");
     }
     if (s.r.t == "boss") {
-      s.won = 1;
-      toast("THE AUDITOR FALLS");
-      if (SV.w == 0)
-        setTimeout(() => toast("UNLOCKED: PINBALL, BUG REPORT"), 1300);
-      SV.w++;
-      save();
-      setTimeout(() => toast("GO BACK TO THE SPAWN ROOM"), 2600);
-      sfx(300, 0.6, "triangle", 0.08, 400);
+      onBossDefeated(s);
     } else {
       toast("ROOM CLEARED");
       s.picks = has("fortune") && s.r.fz === 1 ? 2 : 1; // Fortune jackpot: choose two Bindings

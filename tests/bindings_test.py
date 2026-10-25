@@ -90,18 +90,49 @@ with sync_playwright() as p:
     reset(['watch'],6);E("M.hurt(1,false)");hp_u=E("BOV.S.hp");reset(['watch'],6);E("M.hurt(1,true)");hp_m=E("BOV.S.hp")
     check(abs(hp_u-4.75)<1e-9 and hp_m==5,'Watcher: unmarked attackers deal 1.25 (hp %.2f), marked 1.0 (hp %.2f)'%(hp_u,hp_m))
     # ---- Fortune
-    reset(['fortune']);rm=E("(()=>{const S=BOV.S;const r=S.rs.find(r=>r.t=='fight');r.fz=undefined;r.clr=false;return S.rs.indexOf(r)})()")
-    E("(i=>{const o=Math.random;Math.random=()=>0.1;M.enter(BOV.S.rs[i],null);Math.random=o})(%d)"%rm);check(E("BOV.S.r.fz")==1,'Fortune: lucky room rolled (double loot)')
+    reset(['fortune']);rm=E("(()=>{const S=BOV.S;const r=S.rs.find(r=>r.t=='fight'&&r!==S.r);r.fz=undefined;r.clr=false;return S.rs.indexOf(r)})()")
+    E("(i=>{const o=Math.random;let f=1;Math.random=()=>f?(f=0,0.1):o();M.enter(BOV.S.rs[i],null);Math.random=o})(%d)"%rm);check(E("BOV.S.r.fz")==1,'Fortune: lucky room rolled (double loot) fz=%s own=%s dis=%s roomT=%s'%(E("BOV.S.r.fz"),E("BOV.S.own"),E("BOV.S.dis"),E("BOV.S.r.t+'/'+BOV.S.r.clr")))
     E("BOV.S.es=[]");pg.wait_for_timeout(1600);check(E("BOV.S.picks")==2 and E("BOV.S.mode")=='pick','Fortune: lucky room offers a choice (picks=2)')
     pg.click('.card >> nth=0');pg.wait_for_timeout(1000);check(E("BOV.S.mode")=='pick' and E("BOV.S.picks")==1 and E("BOV.S.own.length")==2,'Fortune: second Binding choice appears after the first')
     pg.click('.card >> nth=0');pg.wait_for_timeout(300);check(E("BOV.S.own.length")==3 and E("BOV.S.mode")=='play','Fortune: both picks granted, back to play')
     reset(['fortune']);rm=E("(()=>{const S=BOV.S;const r=S.rs.find(r=>r.t=='fight'&&r!==S.r);r.fz=undefined;r.clr=false;return S.rs.indexOf(r)})()")
-    E("(i=>{const o=Math.random;Math.random=()=>0.4;M.enter(BOV.S.rs[i],null);Math.random=o})(%d)"%rm);n_amb=E("BOV.S.es.length");check(E("BOV.S.r.fz")==2 and n_amb>=6,'Fortune: ambush room spawns extra enemies (%d)'%n_amb)
+    E("(i=>{const o=Math.random;let f=1;Math.random=()=>f?(f=0,0.4):o();M.enter(BOV.S.rs[i],null);Math.random=o})(%d)"%rm);n_amb=E("BOV.S.es.length");check(E("BOV.S.r.fz")==2 and n_amb>=6,'Fortune: ambush room spawns extra enemies (%d)'%n_amb)
     # ---- Void drawback via the real pick screen
-    ids=E("M.BD.map(b=>b.id)");reset([i for i in ids if i not in('void','fortune','watch')]);E("M.pickScr()");names=pg.eval_on_selector_all('.card b','e=>e.map(x=>x.textContent)')
+    ids=E("M.BD.map(b=>b.id)");reset(['aegis','leech','hot','echo'])
+    for _ in range(80):
+        E("M.pickScr()");names=pg.eval_on_selector_all('.card b','e=>e.map(x=>x.textContent)')
+        if 'Binding of the Void' in names:break
     check('Binding of the Void' in names,'pick screen shows the new names: %s'%names)
-    pg.click('text=Binding of the Void');pg.wait_for_timeout(200);check(E("BOV.S.mh")==4 and E("BOV.S.hp")<=4,'Void: max health 6 -> 4')
+    pg.click('text=Binding of the Void');pg.wait_for_timeout(200);pg.click('.card.sm >> nth=0');pg.wait_for_timeout(200);check(E("BOV.S.mh")==4 and E("BOV.S.hp")<=4,'Void: max health 6 -> 4')
     pg.screenshot(path='/tmp/pick_void.png')
+    # ---- loadout limit: max 4 Bindings, replace screen, skip
+    cards=lambda:pg.eval_on_selector_all('.card b','e=>e.map(x=>x.textContent)')
+    reset(['aegis','leech','hot']);E("BOV.S.picks=1;M.pickScr()");check(pg.locator('text=SKIP').count()==0,'under the limit: no skip button, picking just adds')
+    pg.click('.card >> nth=0');pg.wait_for_timeout(200);check(E("BOV.S.own.length")==4 and E("BOV.S.mode")=='play','4th Binding added without a replace screen')
+    E("M.pickScr()");check(pg.locator('button:has-text("SKIP")').count()==1 and 'Loadout full' in pg.inner_text('#ov'),'full loadout: offer screen shows SKIP and the 4/4 notice')
+    before=E("BOV.S.own.slice()");pg.click('button:has-text("SKIP")');pg.wait_for_timeout(150)
+    check(E("BOV.S.own")==before and E("BOV.S.mode")=='play' and E("document.getElementById('ov').style.display")=='none','SKIP keeps the loadout and resumes play')
+    E("M.pickScr()");pg.keyboard.press('Escape');pg.wait_for_timeout(150);check(E("BOV.S.own")==before and E("BOV.S.mode")=='play','Esc also skips')
+    E("M.pickScr()");newb=cards()[0];pg.keyboard.press('1');pg.wait_for_timeout(150)
+    check('REPLACE WHICH' in pg.inner_text('#ov') and pg.locator('.card.sm').count()==4 and E("BOV.S.mode")=='pick','choosing a card at 4/4 opens the replace screen with the 4 equipped Bindings')
+    pg.keyboard.press('Escape');pg.wait_for_timeout(100);check('CHOOSE A BINDING' in pg.inner_text('#ov'),'Esc on the replace screen goes back to the offer')
+    pg.keyboard.press('1');pg.wait_for_timeout(100);pg.keyboard.press('2');pg.wait_for_timeout(200)
+    own=E("BOV.S.own");check(len(own)==4 and before[1] not in own and E("BOV.S.mode")=='play' and E("M.BM[BOV.S.own[3]].n")==newb,'replacing slot 2 swaps it out for the new Binding (%s)'%own)
+    E("M.pickScr()");pg.keyboard.press('1');pg.wait_for_timeout(100);pg.click('button:has-text("SKIP")');pg.wait_for_timeout(150);check(E("BOV.S.mode")=='play','SKIP on the replace screen also keeps the loadout')
+    # replacing Void gives its max health back
+    reset(['void','aegis','leech','hot']);E("BOV.S.mh=4;BOV.S.hp=4;M.pickScr()");pg.keyboard.press('1');pg.wait_for_timeout(100);pg.keyboard.press('1');pg.wait_for_timeout(200)
+    check(E("BOV.S.mh")==6 and 'void' not in E("BOV.S.own"),'replacing Binding of the Void restores max health (mh=%d)'%E("BOV.S.mh"))
+    # Shards/Twins exclusion still swaps without a replace screen
+    reset(['twin','aegis','leech','hot']);E("M.pickScr()");E("(()=>{const o=BOV.S;})()")
+    idx=pg.evaluate("()=>{const c=[...document.querySelectorAll('.card b')].map(x=>x.textContent);return c.indexOf('Binding of Shards')}")
+    if idx>=0:
+        pg.keyboard.press(str(idx+1));pg.wait_for_timeout(200);check('twin' not in E("BOV.S.own") and 'glass' in E("BOV.S.own") and E("BOV.S.mode")=='play','Shards at 4/4 replaces Twins directly (exclusion), no extra screen')
+    else:
+        E("document.getElementById('ov').style.display='none';BOV.S.mode='play'")
+    # Fortune double loot: skipping the first pick still offers the second
+    reset(['fortune','aegis','leech','hot']);E("BOV.S.picks=2;M.pickScr()");pg.keyboard.press('Escape');pg.wait_for_timeout(900)
+    check(E("BOV.S.mode")=='pick' and E("BOV.S.picks")==1,'Fortune jackpot: after skipping pick 1 of 2, pick 2 is offered')
+    pg.keyboard.press('Escape');pg.wait_for_timeout(200);check(E("BOV.S.mode")=='play','...and skipping that returns to play')
     # ---- Auditor toast fits, synergies exist
     check(max(len(('AUDIT: '+b['sn']+' OFF')) for b in E("M.BD")) <=29,'Auditor toast short names fit the 240px HUD (<=29 chars)')
     check(all(k.split('+')[0] in ids and k.split('+')[1] in ids for k in E("Object.keys(M.CB)")),'every synergy references real Binding ids (%d synergies)'%E("Object.keys(M.CB).length"))

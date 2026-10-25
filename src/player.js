@@ -73,7 +73,7 @@ export function hurt(n, mk) {
     setTimeout(deadScr, 900);
   }
 }
-// Invulnerability timer, WASD movement, mouse/arrow aiming (arrow lock until the mouse moves), firing.
+// Invulnerability timer, WASD movement, aiming (stored s.aimA: arrows/Space or mouse), firing.
 export function updatePlayer(s, dt) {
   if (s.iv > 0) s.iv -= dt;
   let ix = (K.d || 0) - (K.a || 0),
@@ -84,17 +84,16 @@ export function updatePlayer(s, dt) {
     mvP(ix * v, iy * v);
     s.mv += dt;
   }
-  let ax = (K.arrowright || 0) - (K.arrowleft || 0),
+  // Aim. s.aimA is the stored aim angle (radians). Arrow keys set it (s.ak = 1: keyboard owns the aim; releasing the keys
+  // leaves it untouched). The mouse takes over only after it moves (input.js sets s.ak = 0) and then keeps s.aimA updated.
+  const ax = (K.arrowright || 0) - (K.arrowleft || 0),
     ay = (K.arrowdown || 0) - (K.arrowup || 0),
-    a = Math.atan2(my - s.y, mx - s.x),
-    f = md || K[" "] || ax || ay;
+    mouseA = Math.atan2(my - s.y, mx - s.x);
   if (ax || ay) {
-    a = Math.atan2(ay, ax);
+    s.aimA = Math.atan2(ay, ax);
     s.ak = 1;
-    s.aa = a;
-  }
-  const fa = s.ak ? s.aa : a;
-  s.aim = a;
+  } else if (!s.ak) s.aimA = mouseA;
+  const fa = s.aimA;
   s.face =
     Math.abs(Math.cos(fa)) > Math.abs(Math.sin(fa))
       ? Math.cos(fa) < 0
@@ -103,8 +102,13 @@ export function updatePlayer(s, dt) {
       : Math.sin(fa) < 0
         ? 1
         : 0;
-  if ((s.fd -= dt) <= 0 && f) {
-    fire(a);
+  // Fire: arrows -> their direction; mouse button -> toward the cursor; Space -> the stored aim angle (never the mouse).
+  let fireA = null;
+  if (ax || ay) fireA = fa;
+  else if (md) fireA = mouseA;
+  else if (K[" "]) fireA = fa;
+  if ((s.fd -= dt) <= 0 && fireA !== null) {
+    fire(fireA);
     s.ft = 0.12;
   }
   if (s.ft > 0) s.ft -= dt;

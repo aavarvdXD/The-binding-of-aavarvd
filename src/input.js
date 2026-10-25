@@ -2,7 +2,7 @@
 import { S } from "./state.js";
 import { OY } from "./util.js";
 import { cv } from "./renderer.js";
-import { pick } from "./ui.js";
+import { pickKey, activatePrimary } from "./ui.js";
 import { start } from "./game.js";
 export const K = {};
 export let mx = 120,
@@ -12,8 +12,9 @@ export function initInput() {
   addEventListener("keydown", (e) => {
     K[e.key.toLowerCase()] = 1;
     if (e.key.startsWith("Arrow") || e.key == " ") e.preventDefault();
-    if (S && S.mode == "pick" && "123".includes(e.key)) pick(+e.key - 1);
-    if (e.key == "r" && S && (S.mode == "dead" || S.mode == "win")) start();
+    if (S && S.mode == "pick") pickKey(e.key);
+    if (e.key == "r" && S && (S.mode == "dead" || S.mode == "stairs")) start();
+    if (e.key == "Enter" && !e.repeat) activatePrimary();
   });
   addEventListener("keyup", (e) => (K[e.key.toLowerCase()] = 0));
   cv.addEventListener("mousemove", (e) => {

@@ -54,4 +54,7 @@ export const createState = (rs) => ({
   bh: [],
   arc: [],
   picks: 1,
+  // aimA = stored aim angle (starts facing down); ak = 1 while the keyboard owns the aim, 0 once the mouse moves.
+  aimA: Math.PI / 2,
+  ak: 1,
 });
