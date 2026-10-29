@@ -11,13 +11,38 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles/game.css" />
+    <link id="css" rel="stylesheet" href="styles/game.css" />
   </head>
   <body>
     <div id="w">
       <canvas id="c" width="240" height="200"></canvas>
       <div id="ov"></div>
     </div>
-    <script type="module" src="src/main.js"></script>
+    <script>
+      // Entry point. On localhost / 127.0.0.1 every file is requested with a fresh ?v=<time> so a plain
+      // `python3 -m http.server` can never serve stale cached modules or CSS (browsers cache ES modules aggressively).
+      // On the real site (GitHub Pages) nothing is changed: normal caching applies.
+      (function () {
+        var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname),
+          v = Date.now(),
+          q = local ? "?v=" + v : "";
+        if (local) {
+          var mods = "assets audio bindings bosses effects enemies game input main player projectiles renderer rooms save state synergies ui util".split(" "),
+            map = { imports: {} };
+          mods.forEach(function (m) {
+            map.imports["./src/" + m + ".js"] = "./src/" + m + ".js" + q;
+          });
+          var im = document.createElement("script");
+          im.type = "importmap";
+          im.textContent = JSON.stringify(map);
+          document.head.appendChild(im);
+          document.getElementById("css").href = "styles/game.css" + q;
+        }
+        var s = document.createElement("script");
+        s.type = "module";
+        s.src = "src/main.js" + q;
+        document.body.appendChild(s);
+      })();
+    </script>
   </body>
 </html>
