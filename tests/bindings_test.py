@@ -136,6 +136,21 @@ with sync_playwright() as p:
     # ---- Auditor toast fits, synergies exist
     check(max(len(('AUDIT: '+b['sn']+' OFF')) for b in E("M.BD")) <=29,'Auditor toast short names fit the 240px HUD (<=29 chars)')
     check(all(k.split('+')[0] in ids and k.split('+')[1] in ids for k in E("Object.keys(M.CB)")),'every synergy references real Binding ids (%d synergies)'%E("Object.keys(M.CB).length"))
+    # ---- real flow: clear 8 fight rooms in a row, answering every screen like a player would
+    pg.evaluate("()=>{BOV.start()}");pg.wait_for_timeout(300)
+    seen=[]
+    for n in range(8):
+        pg.evaluate("()=>{const S=BOV.S;S.hp=6;S.iv=99;const r=S.rs.find(r=>r.t=='fight'&&!r.clr);M.enter(r,null)}");pg.wait_for_timeout(250)
+        pg.evaluate("BOV.S.es.forEach(e=>e.hp=0)");pg.wait_for_timeout(1600)
+        own=E("BOV.S.own.length");full=pg.locator('button:has-text("SKIP")').count()==1;seen.append((own,full))
+        for _ in range(6):
+            if E("BOV.S.mode")!='pick':break
+            if 'REPLACE' in pg.inner_text('#ov'):pg.click('.card.sm >> nth=0')
+            elif pg.locator('button:has-text("SKIP")').count() and n%2:pg.keyboard.press('Escape')
+            else:pg.click('.card >> nth=0')
+            pg.wait_for_timeout(900)
+        check(E("BOV.S.own.length")<=4,'real flow room %d: loadout stays <= 4 (%d)'%(n+1,E("BOV.S.own.length")))
+    check(all(f==(o>=4) for o,f in seen) and any(f for o,f in seen),'real flow: SKIP/full notice appears exactly when 4 are equipped: %s'%seen)
     # ---- chaos soak with every Binding owned
     reset(ids);E("(()=>{const S=BOV.S;S.hp=6;S.mh=60;S.hp=60;S.r.clr=false;S.r.open=false;S.es=[]})()")
     for t,x,y in [('skull',60,60),('octo',180,60),('spirit',120,120),('mimic',150,100),('skull',90,40)]:mkE(t,x,y,6)

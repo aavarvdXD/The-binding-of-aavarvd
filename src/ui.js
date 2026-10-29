@@ -1,7 +1,7 @@
 // Everything DOM/HUD: layout scaling, overlay screens (title, Binding choice, death, stairs), toasts, HUD drawing.
 // Overlay buttons use data-act attributes handled by one delegated click listener (no inline onclick, no globals).
 import { S } from "./state.js";
-import { $, W, H, OY, DR } from "./util.js";
+import { $, W, H, OY, DR, BUILD } from "./util.js";
 import { A, IM } from "./assets.js";
 import { SV, save } from "./save.js";
 import { sfx, playMusic } from "./audio.js";
@@ -201,6 +201,8 @@ export function showTitle() {
     (SV.w ? "Boss defeated x" + SV.w + " &middot; " : "") +
     "Synergies found: " +
     SV.c.length +
+    '</p><p style="opacity:.45;font-size:.8em">build ' +
+    BUILD +
     "</p>";
   ov.style.display = "flex";
 }
@@ -240,14 +242,17 @@ export function drawHUD(g, s) {
   });
   g.font = '8px "Press Start 2P",monospace';
   g.textAlign = "left";
-  const xs = s.rs.map((q) => q.x),
-    ys = s.rs.map((q) => q.y),
-    x0 = Math.min(...xs),
-    y0 = Math.min(...ys),
-    ox = Math.min(190, 232 - (Math.max(...xs) - x0) * 8),
-    sy = Math.min(6, Math.floor(17 / (Math.max(...ys) - y0 + 1)));
+  // Minimap: fixed-size cells (8x6 px, room = 6x4) in a window around the current room (+-2 columns, +-1 row), so the
+  // squares never overlap however big the 12-room floor is. The current room is always in the middle.
+  const mcx = 212,
+    mcy = 12;
   for (const q of s.rs) {
+    const rx = q.x - s.r.x,
+      ry = q.y - s.r.y;
+    if (Math.abs(rx) > 2 || Math.abs(ry) > 1) continue;
     if (!q.vis && !q.nb.some((n) => n && n.vis)) continue;
+    const px = mcx - 3 + rx * 8,
+      py = mcy - 2 + ry * 6;
     g.fillStyle =
       q == s.r
         ? "#fff"
@@ -258,17 +263,12 @@ export function drawHUD(g, s) {
             : q.clr
               ? "#7a5ad0"
               : "#3b2470";
-    g.fillRect(ox + (q.x - x0) * 8, 3 + (q.y - y0) * sy, 6, 4);
+    g.fillRect(px, py, 6, 4);
     q.nb.forEach((n, i) => {
       if (n && (q.vis || n.vis)) {
         g.fillStyle = q.vis && n.vis ? "#7a5ad0" : "#3b2470";
         const d = DR[i];
-        g.fillRect(
-          ox + (q.x - x0) * 8 + d.dx * 2 + 2,
-          3 + (q.y - y0) * sy + d.dy * 2 + 1,
-          2,
-          2,
-        );
+        g.fillRect(px + d.dx * 2 + 2, py + d.dy * 2 + 1, 2, 2);
       }
     });
   }
