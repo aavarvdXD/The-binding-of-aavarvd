@@ -119,6 +119,7 @@ export function draw() {
         } else
           g.globalAlpha =
             s.rev > 0 && has("watch") ? Math.max(e.al, 0.9) : e.al; // Watcher reveal shows hidden Glitches
+        if (e.inv > 0 && Math.floor(tt * 16) % 2) g.globalAlpha *= 0.45; // phase change: flickering = invulnerable
         if (e.fl > 0) g.filter = "brightness(3)";
         else if (e.fr > 0)
           g.filter = "hue-rotate(150deg) saturate(1.6) brightness(1.5)"; // frozen

@@ -141,6 +141,10 @@ export const shotSpeed = (s) => (has("chrono") && s.slow > 0 ? CHRONO_SPEED : 1)
 // ---- all damage the player deals to an enemy goes through here, so every on-hit Binding stacks consistently
 // (shots, echoes, shards, chain lightning, black-hole collapse).
 export function damageEnemy(e, dmg) {
+  if (e.inv > 0) {
+    part(e.x, e.y, "#ffffff", 2, 40); // Auditor between phases: untouchable
+    return 0;
+  }
   let d = dmg;
   if (e.mk > 0 && has("watch")) {
     d *= 1.6;
@@ -277,12 +281,13 @@ function markOne(s) {
 function updateStatus(s, dt) {
   for (const e of s.es) {
     if (e.mk > 0) e.mk -= dt;
+    if (e.inv > 0) e.inv -= dt;
     if (e.fr > 0) e.fr -= dt;
     if (e.fi > 0) e.fi -= dt;
     if (e.fzT > 0 && (e.fzT -= dt) <= 0) e.fz = 0;
     if (e.po > 0) {
       e.po -= dt;
-      if (e.sp <= 0) {
+      if (e.sp <= 0 && !(e.inv > 0)) {
         e.hp -= 0.35 * (e.ps || 1) * dt; // 0.35 damage/s per stack, up to 5 stacks
         if (Math.random() < dt * 6) part(e.x, e.y, "#7fdc4a", 1, 20);
       }

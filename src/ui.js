@@ -277,7 +277,10 @@ export function drawHUD(g, s) {
     g.fillStyle = "#300";
     g.fillRect(40, OY + 4, 160, 4);
     g.fillStyle = "#f45";
-    g.fillRect(40, OY + 4, (160 * Math.max(0, bo.hp)) / 70, 4);
+    g.fillRect(40, OY + 4, (160 * Math.max(0, bo.hp)) / (bo.mhp || 70), 4);
+    g.fillStyle = "#07040c"; // phase marks at 1/3 and 2/3
+    g.fillRect(40 + 53, OY + 4, 1, 4);
+    g.fillRect(40 + 107, OY + 4, 1, 4);
   }
   s.msg.slice(-2).forEach((m, i) => {
     g.globalAlpha = Math.min(1, m.l);

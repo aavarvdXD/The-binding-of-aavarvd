@@ -18,4 +18,4 @@ Add `?debug` to the URL to get `window.BOV` (`BOV.S` = live run state, `BOV.SV` 
 ## Troubleshooting: "I don't see the latest changes"
 - On `localhost` / `127.0.0.1`, `index.html` loads every module and the CSS with a fresh `?v=<time>`, so a plain `python3 -m http.server` never serves stale files (browsers cache ES modules aggressively). On the real site, normal caching applies - allow a few minutes after deploying, or hard-refresh (Ctrl+Shift+R).
 - The title screen shows `build <BUILD>` (constant in `src/util.js`). If it is missing or old, the browser is not loading this folder: check the terminal running the server is inside the project folder, and open `http://localhost:8000/src/bindings.js` - it should contain `Binding of Chronos`.
-
+    python3 tests/boss_test.py http://localhost:8000       # the 3-phase Auditor

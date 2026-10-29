@@ -7,10 +7,10 @@ import { blk } from "./rooms.js";
 import { eshot } from "./projectiles.js";
 import { part } from "./effects.js";
 import { hurt, heal } from "./player.js";
-import { updateBoss } from "./bosses.js";
+import { updateBoss, AUDITOR_HP } from "./bosses.js";
 // Enemy factory. e.sp = spawn-in delay (invulnerable), e.st = AI state, e.aw = mimic awake.
 export function mk(t, x, y) {
-  const H = { skull: 3, octo: 3, spirit: 2, mimic: 7, boss: 70 }[t];
+  const H = { skull: 3, octo: 3, spirit: 2, mimic: 7, boss: AUDITOR_HP }[t];
   const hp = H + (t == "boss" ? 0 : Math.floor(S.r.dp / 2));
   return {
     t,
@@ -150,5 +150,8 @@ export function reapEnemies(s) {
       if (Math.random() < (has("fortune") && s.r.fz === 1 ? 0.2 : 0.1))
         s.pk.push({ x: e.x, y: e.y });
     }
+  // The Auditor's backup falls with it (they die next frame, so the room clears right after).
+  if (s.es.some((e) => e.dead && e.t == "boss"))
+    for (const e of s.es) if (!e.dead) e.hp = 0;
   s.es = s.es.filter((e) => !e.dead);
 }
