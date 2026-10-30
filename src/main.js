@@ -19,13 +19,11 @@ if (new URLSearchParams(location.search).has("debug"))
   };
 loadAssets()
   .then(() => {
+    document.getElementById("boot")?.remove(); // loading message from index.html
     showTitle();
     startLoop();
   })
   .catch((e) => {
     console.error(e);
-    document.body.insertAdjacentHTML(
-      "beforeend",
-      '<pre style="color:#f88">' + e.message + "</pre>",
-    );
+    if (window.__bootFail) window.__bootFail(e.message);
   });

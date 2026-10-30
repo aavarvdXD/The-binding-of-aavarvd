@@ -18,11 +18,34 @@
       <canvas id="c" width="240" height="200"></canvas>
       <div id="ov"></div>
     </div>
+    <!-- Shown until the game has loaded; turns into an error message if loading fails (never a silent blank page). -->
+    <div
+      id="boot"
+      style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: #07050c; color: #bdb2d6; font: 14px/1.6 monospace; text-align: center; white-space: pre-wrap"
+    >
+      Loading The Binding of Aavarvd...
+    </div>
     <script>
       // Entry point. On localhost / 127.0.0.1 every file is requested with a fresh ?v=<time> so a plain
       // `python3 -m http.server` can never serve stale cached modules or CSS (browsers cache ES modules aggressively).
       // On the real site (GitHub Pages) nothing is changed: normal caching applies.
       (function () {
+        function fail(msg) {
+          var b = document.getElementById("boot");
+          if (!b) return; // game already running: ignore later runtime errors here
+          b.style.color = "#ff8a8a";
+          b.textContent =
+            "The game could not start.\n\n" + msg +
+            "\n\nRun  python3 -m http.server 8000  inside the project folder (the one containing index.html)," +
+            "\nthen open http://localhost:8000  - and check the browser console (F12) for details.";
+        }
+        window.__bootFail = fail;
+        window.addEventListener("error", function (e) {
+          fail(e.message || "script error");
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          fail(String((e.reason && e.reason.message) || e.reason));
+        });
         var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname),
           v = Date.now(),
           q = local ? "?v=" + v : "";
@@ -41,6 +64,9 @@
         var s = document.createElement("script");
         s.type = "module";
         s.src = "src/main.js" + q;
+        s.onerror = function () {
+          fail("Could not load src/main.js (wrong folder, missing file, or the server sends JavaScript with a wrong MIME type).");
+        };
         document.body.appendChild(s);
       })();
     </script>
