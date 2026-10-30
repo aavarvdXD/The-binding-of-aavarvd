@@ -13,6 +13,7 @@ import { updateBindings } from "./bindings.js";
 import { updatePlayer, updatePickups } from "./player.js";
 import { updateProjectiles, updateEnemyShots } from "./projectiles.js";
 import { updateEnemies, reapEnemies } from "./enemies.js";
+import { updateTelegraphs } from "./bosses.js";
 import { updateEffects } from "./effects.js";
 import { draw } from "./renderer.js";
 export function start() {
@@ -32,6 +33,7 @@ function upd(dt) {
     if (checkStairs(s)) return;
     updateProjectiles(s, dt);
     updateEnemies(s, dt);
+    updateTelegraphs(s, dt);
     reapEnemies(s);
     updateEnemyShots(s, dt);
     updatePickups(s);

@@ -4,7 +4,13 @@ import { $, W, H, OY, DR, R } from "./util.js";
 import { IM, FT } from "./assets.js";
 import { K } from "./input.js";
 import { has } from "./bindings.js";
-import { drawParticles, drawExplosions, drawGlitch } from "./effects.js";
+import {
+  drawParticles,
+  drawExplosions,
+  drawGlitch,
+  drawBanner,
+  drawTelegraphs,
+} from "./effects.js";
 import { drawHUD } from "./ui.js";
 export const cv = $("c"),
   g = cv.getContext("2d");
@@ -125,6 +131,8 @@ export function draw() {
           g.filter = "hue-rotate(150deg) saturate(1.6) brightness(1.5)"; // frozen
         else if (e.fz > 0) g.filter = "hue-rotate(150deg) brightness(1.15)"; // chilled
         else if (e.po > 0) g.filter = "hue-rotate(75deg) saturate(1.4)"; // poisoned
+        else if (e.t == "boss" && e.ph == 1) g.filter = "hue-rotate(35deg) saturate(1.7) brightness(1.1)"; // True Auditor
+        else if (e.t == "boss" && e.ph == 2) g.filter = "hue-rotate(200deg) saturate(2) brightness(1.15)"; // Final Judgment
         if (e.t == "boss")
           spr(
             e.fl > 0 ? "bosshit" : "boss",
@@ -271,6 +279,7 @@ export function draw() {
     }
     g.globalAlpha = 1;
   }
+  drawTelegraphs(g, s);
   drawParticles(g, s);
   drawExplosions(g, s);
   if (has("chrono") && s.slow > 0) {
@@ -281,6 +290,7 @@ export function draw() {
   g.restore();
   // glitch slices
   drawGlitch(g, cv, s);
+  drawBanner(g, s);
   // HUD
   drawHUD(g, s);
 }

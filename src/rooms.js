@@ -77,6 +77,8 @@ export function enter(r, di) {
   S.cl = [];
   S.bh = [];
   S.arc = [];
+  S.tel = [];
+  S.ban = null;
   S.dmgRoom = 0; // Ascension: damage taken in this room
   if (di != null) {
     const d = DR[di];

@@ -54,6 +54,9 @@ export const createState = (rs) => ({
   bh: [],
   arc: [],
   picks: 1,
+  // ban = big centred banner {lines,col,t,l} (boss phase changes); tel = Auditor stamp markers {x,y,t,l,n,v,src}.
+  ban: null,
+  tel: [],
   // aimA = stored aim angle (starts facing down); ak = 1 while the keyboard owns the aim, 0 once the mouse moves.
   aimA: Math.PI / 2,
   ak: 1,
