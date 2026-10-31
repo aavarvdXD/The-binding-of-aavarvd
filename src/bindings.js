@@ -89,6 +89,11 @@ export const BD = [
     n: "Binding of the Watcher",
     d: "Marked enemies take bonus damage and reveal the room. Unmarked hit harder.",
   },
+  {
+    id: "def",
+    n: "Binding of Defense",
+    d: "Increases max health to 12. Base damage reduced.",
+  },
 ];
 // ic = icon key in assets.js (i0..i19, same order as this list); sn = short name for tight UI text (Auditor toast).
 BD.forEach((b, i) => {
@@ -123,8 +128,19 @@ export function volleyDamage(n) {
   if (has("reflect")) dm *= 0.75;
   if (has("decay")) dm *= 0.6;
   if (has("ascend")) dm *= 0.9;
-  if (has("blood")) dm *= 1 + (1 - Math.max(0, S.hp) / S.mh) * 1.5; // full health x1, 1 hp of 6 about x2.25
+  if (has("def")) dm *= 0.85;
+  if (has("blood")) dm *= 1 + (1 - Math.max(0, S.hp) / S.mh) * 1.5;
   return dm;
+}
+
+export function calcMaxHealth(s) {
+  let mh = 8;
+  if (has("def")) mh = 12;
+  if (has("void")) mh = Math.max(2, mh - 2);
+  if (s.mh != mh) {
+    s.mh = mh;
+    s.hp = Math.min(s.hp, s.mh);
+  }
 }
 
 // ---- enemy-side numbers
@@ -299,6 +315,7 @@ function updateStatus(s, dt) {
 // Per-frame timers: Auditor disable countdowns, Paper Aegis recharge, and every new Binding's cycle.
 export function updateBindings(s, dt) {
   for (const k in s.dis) if ((s.dis[k] -= dt) <= 0) delete s.dis[k];
+  calcMaxHealth(s);
   if (s.shT > 0 && (s.shT -= dt) <= 0) s.sh = 1;
   if (s.slow > 0) s.slow -= dt;
   if (s.rev > 0) s.rev -= dt;

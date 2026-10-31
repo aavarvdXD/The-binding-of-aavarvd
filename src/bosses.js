@@ -17,9 +17,9 @@ import { part } from "./effects.js";
 import { toast } from "./ui.js";
 export const AUDITOR_HP = 220;
 const PHASES = [
-  { every: 1.8, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
+  { every: 2, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
   {
-    every: 1.4,
+    every: 1.7,
     speed: 36,
     bs: 1.25,
     audit: 7,
@@ -30,7 +30,7 @@ const PHASES = [
     adds: "skull",
   },
   {
-    every: 1.3,
+    every: 1.5,
     speed: 44,
     bs: 1.4,
     audit: 6,

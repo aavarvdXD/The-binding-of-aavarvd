@@ -5,7 +5,7 @@ import { $, W, H, OY, DR, BUILD } from "./util.js";
 import { A, IM } from "./assets.js";
 import { SV, save } from "./save.js";
 import { sfx, playMusic } from "./audio.js";
-import { BD, BM, MAX_BINDINGS } from "./bindings.js";
+import { BD, BM, MAX_BINDINGS, calcMaxHealth } from "./bindings.js";
 import { heal } from "./player.js";
 import { checkSynergies } from "./synergies.js";
 import { g, spr } from "./renderer.js";
@@ -123,7 +123,9 @@ export function swap(j) {
   if (!pend || S.mode != "pick" || S.own[j] === undefined) return;
   const old = S.own[j];
   S.own.splice(j, 1);
-  if (old == "void") S.mh += 2; // Void's max-health drawback goes away with it
+  if (old == "def") {
+    S.hp -= 8;
+  }
   toast(BM[old].sn.toUpperCase() + " REPLACED");
   const b = pend;
   pend = null;
@@ -174,11 +176,11 @@ function applyBinding(b) {
   if (b.id == "aegis") {
     S.sh = 1;
   }
-  if (b.id == "void") {
-    // Void drawback: permanently lower max health (hearts shown in the HUD shrink with it).
-    S.mh = Math.max(2, S.mh - 2);
-    S.hp = Math.min(S.hp, S.mh);
+  if (b.id == "def") {
+    calcMaxHealth(S);
+    S.hp += 8;
   }
+  calcMaxHealth(S);
   afterPick();
 }
 export function deadScr() {
@@ -222,13 +224,13 @@ export function drawHUD(g, s) {
     const x = 8 + i * (s.own.length > 15 ? Math.floor(180 / s.own.length) : 12); // squeeze icons if many Bindings are owned
     g.globalAlpha = s.dis[id] > 0 ? 0.25 : 1;
     g.drawImage(IM[BM[id].ic], 0, 0, 16, 16, x, 13, 10, 10);
-    // charge bars: Chronos (next slow), Thunder (charged = full), Ascension (shield time left)
+    // Charge bars: Chronos (next slow), Thunder (charged = full), Ascension (shield time left)
     let p = null,
       pc = "#7fd4ff";
     if (id == "chrono") p = s.slow > 0 ? 1 : 1 - s.chT / 7;
     else if (id == "thunder") (p = s.thR ? 1 : 1 - s.thT / 6), (pc = "#ffe066");
     else if (id == "ascend") (p = s.asS > 0 ? s.asS / 25 : 0), (pc = "#ffd36b");
-    if (p !== null && s.dis[id] == null) {
+    if (p !== null && !s.dis[id]) {
       g.fillStyle = "#000";
       g.fillRect(x, 22, 10, 1);
       g.fillStyle = pc;
@@ -281,6 +283,12 @@ export function drawHUD(g, s) {
     g.fillStyle = "#07040c"; // phase marks at 1/3 and 2/3
     g.fillRect(40 + 53, OY + 4, 1, 4);
     g.fillRect(40 + 107, OY + 4, 1, 4);
+  }
+  if (s.god) {
+    g.fillStyle = "#ffd36b";
+    g.font = '8px "Press Start 2P",monospace';
+    g.textAlign = "right";
+    g.fillText("GOD", W - 10, OY - 6);
   }
   s.msg.slice(-2).forEach((m, i) => {
     g.globalAlpha = Math.min(1, m.l);

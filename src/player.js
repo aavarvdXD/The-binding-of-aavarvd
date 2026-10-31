@@ -42,7 +42,7 @@ export function heal(n) {
 }
 // mk = the attacker was Watcher-marked (unmarked attackers hit 25% harder while Watcher is active).
 export function hurt(n, mk) {
-  if (S.iv > 0 || S.mode != "play") return;
+  if (S.iv > 0 || S.mode != "play" || S.god) return;
   if (has("ascend") && S.asS > 0) {
     S.asS = 0;
     S.iv = 0.6;
