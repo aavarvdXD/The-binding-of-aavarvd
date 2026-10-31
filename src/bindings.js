@@ -9,7 +9,7 @@ import { part } from "./effects.js";
 import { blk } from "./rooms.js";
 import { volley } from "./projectiles.js";
 // A run can equip at most this many Bindings; picking more means replacing one (see ui.js pick/swap/skip).
-export const MAX_BINDINGS = 4;
+export const MAX_BINDINGS = 5;
 export const BD = [
   {
     id: "glass",

@@ -21,9 +21,12 @@
     <!-- Shown until the game has loaded; turns into an error message if loading fails (never a silent blank page). -->
     <div
       id="boot"
-      style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: #07050c; color: #bdb2d6; font: 14px/1.6 monospace; text-align: center; white-space: pre-wrap"
+      style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; background: #07050c; color: #bdb2d6; font: 14px/1.6 monospace; text-align: center; white-space: pre-wrap"
     >
-      Loading The Binding of Aavarvd...
+      <div id="boot-text">Loading The Binding of Aavarvd...</div>
+      <div id="pb-w" style="width: 160px; height: 8px; border: 2px solid #3d34a5; margin-top: 16px; padding: 2px">
+        <div id="pb" style="width: 0%; height: 100%; background: #ffd23f"></div>
+      </div>
     </div>
     <script>
       // Entry point. On localhost / 127.0.0.1 every file is requested with a fresh ?v=<time> so a plain
@@ -31,13 +34,16 @@
       // On the real site (GitHub Pages) nothing is changed: normal caching applies.
       (function () {
         function fail(msg) {
-          var b = document.getElementById("boot");
+          var b = document.getElementById("boot"),
+            bt = document.getElementById("boot-text"),
+            pbw = document.getElementById("pb-w");
           if (!b) return; // game already running: ignore later runtime errors here
           b.style.color = "#ff8a8a";
-          b.textContent =
+          if (bt) bt.textContent =
             "The game could not start.\n\n" + msg +
             "\n\nRun  python3 -m http.server 8000  inside the project folder (the one containing index.html)," +
             "\nthen open http://localhost:8000  - and check the browser console (F12) for details.";
+          if (pbw) pbw.style.display = "none";
         }
         window.__bootFail = fail;
         window.addEventListener("error", function (e) {

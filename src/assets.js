@@ -41,12 +41,23 @@ export const A = {
 export const FT = [176, 192]; // floor tile coordinates inside ninja_floor_tileset.png
 export const IM = {};
 export function loadAssets() {
+  const keys = Object.keys(A);
+  const total = keys.length;
+  let loaded = 0;
+  const pb = document.getElementById("pb");
+  const update = () => {
+    loaded++;
+    if (pb) pb.style.width = (loaded / total) * 100 + "%";
+  };
   return Promise.all(
-    Object.keys(A).map(
+    keys.map(
       (k) =>
         new Promise((res, rej) => {
           const i = new Image();
-          i.onload = () => res();
+          i.onload = () => {
+            update();
+            res();
+          };
           i.onerror = () => rej(new Error("Failed to load asset: " + A[k]));
           i.src = A[k];
           IM[k] = i;

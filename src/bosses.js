@@ -1,6 +1,6 @@
 // The Auditor: a 3-phase boss. Tuning lives in AUDITOR_HP and PHASES below.
 //  Phase 1 "The Hearing"      - the original fight: radial rings + aimed fans, Audit disables 1 Binding every 8s.
-//  Phase 2 "True Auditor"     - at 2/3 hp the Auditor STOPS, a big yellow "TRUE AUDITOR HAS AWAKENED" banner plays and it
+//  Phase 2 "The True Verdict"     - at 2/3 hp the Auditor STOPS, a big yellow "TRUE AUDITOR HAS AWAKENED" banner plays and it
 //                               changes colour. Then: much faster attacks, faster bullets, double rings, triple-tap fans,
 //                               reversing spirals, telegraphed stamps (ground markers that burst into rings) and falling
 //                               curtains that shift their gap. Calls 2 skulls.
@@ -16,12 +16,10 @@ import { mk } from "./enemies.js";
 import { part } from "./effects.js";
 import { toast } from "./ui.js";
 export const AUDITOR_HP = 220;
-// every = seconds between attacks, speed = horizontal tracking speed, bs = bullet speed multiplier,
-// audit/count/dur = Audit interval, Bindings disabled per Audit, seconds disabled, intro = seconds stopped on phase change.
 const PHASES = [
-  { every: 1.4, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
+  { every: 1.8, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
   {
-    every: 0.95,
+    every: 1.4,
     speed: 36,
     bs: 1.25,
     audit: 7,
@@ -32,14 +30,14 @@ const PHASES = [
     adds: "skull",
   },
   {
-    every: 0.8,
+    every: 1.3,
     speed: 44,
     bs: 1.4,
     audit: 6,
     count: 2,
     dur: 7,
     intro: 2.2,
-    ban: { lines: ["FINAL", "JUDGMENT"], col: "#ff5d73" },
+    ban: { lines: ["FINAL", "JUDGEMENT"], col: "#ff5d73" },
     adds: "octo",
   },
 ];

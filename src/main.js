@@ -19,9 +19,12 @@ if (new URLSearchParams(location.search).has("debug"))
   };
 loadAssets()
   .then(() => {
-    document.getElementById("boot")?.remove(); // loading message from index.html
-    showTitle();
-    startLoop();
+    // Small delay to let the progress bar reach 100% visibly before the game pops in
+    setTimeout(() => {
+      document.getElementById("boot")?.remove();
+      showTitle();
+      startLoop();
+    }, 100);
   })
   .catch((e) => {
     console.error(e);
