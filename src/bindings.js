@@ -135,8 +135,8 @@ export function volleyDamage(n) {
 
 export function calcMaxHealth(s) {
   let mh = 8;
-  if (has("def")) mh = 12;
-  if (has("void")) mh = Math.max(2, mh - 2);
+  if (s.own.includes("def")) mh = 12;
+  if (s.own.includes("void")) mh = Math.max(2, mh - 2);
   if (s.mh != mh) {
     s.mh = mh;
     s.hp = Math.min(s.hp, s.mh);

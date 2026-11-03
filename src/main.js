@@ -33,7 +33,7 @@ if (new URLSearchParams(location.search).has("debug"))
     removeBinding: (id) => {
       if (S.own.includes(id)) {
         S.own = S.own.filter((x) => x !== id);
-        if (id == "def") S.hp -= 8;
+        if (id == "def") S.hp = Math.max(1, S.hp - 8);
         console.log("Removed binding: " + id);
       }
     },

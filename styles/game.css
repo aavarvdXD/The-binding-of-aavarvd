@@ -97,4 +97,4 @@ button:hover,
   color: #bdb2d6;
   font-size: calc(var(--s) * 2.7px);
 }
-.card.sm{width:calc(var(--s)*40px)}
+.card.sm{width:calc(var(--s)*33px)}

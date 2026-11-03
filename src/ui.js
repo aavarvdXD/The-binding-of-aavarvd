@@ -123,9 +123,7 @@ export function swap(j) {
   if (!pend || S.mode != "pick" || S.own[j] === undefined) return;
   const old = S.own[j];
   S.own.splice(j, 1);
-  if (old == "def") {
-    S.hp -= 8;
-  }
+  if (old == "def") S.hp = Math.max(1, S.hp - 8);
   toast(BM[old].sn.toUpperCase() + " REPLACED");
   const b = pend;
   pend = null;
@@ -143,7 +141,7 @@ export function skip() {
 export function pickKey(k) {
   if (pend) {
     if (k == "Escape") renderChoice();
-    else if (/^[1-4]$/.test(k)) swap(+k - 1);
+    else if (/^[1-9]$/.test(k) && +k <= S.own.length) swap(+k - 1);
   } else if (k == "Escape") {
     if (S.own.length >= MAX_BINDINGS) skip();
   } else if (/^[1-3]$/.test(k)) pick(+k - 1);
