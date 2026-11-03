@@ -37,7 +37,7 @@ export const A = {
   i17: "assets/icons/binding_void.png",
   i18: "assets/icons/binding_ascension.png",
   i19: "assets/icons/binding_watcher.png",
-  i20: "assets/icons/binding_paper_aegis.png",
+  i20: "assets/icons/binding_defense.png",
 };
 export const FT = [176, 192]; // floor tile coordinates inside ninja_floor_tileset.png
 export const IM = {};
