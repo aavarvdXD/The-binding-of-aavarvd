@@ -8,9 +8,10 @@ import { eshot } from "./projectiles.js";
 import { part } from "./effects.js";
 import { hurt, heal } from "./player.js";
 import { updateBoss, AUDITOR_HP } from "./bosses.js";
+import { dropCoins } from "./shops.js";
 // Enemy factory. e.sp = spawn-in delay (invulnerable), e.st = AI state, e.aw = mimic awake.
 export function mk(t, x, y) {
-  const H = { skull: 3, octo: 3, spirit: 2, mimic: 7, boss: AUDITOR_HP }[t];
+  const H = { skull: 3, octo: 3, spirit: 2, mimic: 7, skel: 4, boss: AUDITOR_HP }[t];
   const hp = H + (t == "boss" ? 0 : Math.floor(S.r.dp / 2));
   return {
     t,
@@ -29,6 +30,7 @@ export function mk(t, x, y) {
     vx: 0,
     vy: 0,
     al: 1,
+    host: S.r && S.r.host ? 1 : 0, // kidnap-room skeletons: 1 once hostile
   };
 }
 export function hitE(e, s) {
@@ -117,12 +119,25 @@ export function updateEnemies(s, dt0) {
           step(e.vx, e.vy);
         }
       }
+    } else if (e.t == "skel") {
+      // Neutral skeletons wander slowly and ignore the player; once hostile they chase like Drifters.
+      if (e.host) step((dx / d) * (30 + s.r.dp * 3), (dy / d) * (30 + s.r.dp * 3));
+      else {
+        if ((e.tm -= dt) <= 0) {
+          e.tm = R(1.2, 2.6);
+          const a = R(0, 6.283);
+          e.vx = Math.cos(a) * 14;
+          e.vy = Math.sin(a) * 14;
+        }
+        step(e.vx, e.vy);
+      }
     } else if (e.t == "boss") updateBoss(e, s, dt, { step, dx, dy, d, an });
     if (
       e.t != "boss" &&
       e.t != "octo" &&
       d < e.r + 5 &&
       (e.t != "mimic" || e.aw) &&
+      (e.t != "skel" || e.host) &&
       e.st != 1
     )
       hurt(1, e.mk > 0);
@@ -133,8 +148,16 @@ export function updateEnemies(s, dt0) {
 export function reapEnemies(s) {
   for (const e of s.es)
     if (e.hp <= 0 && !e.dead) {
+      if (e.noDrop) {
+        // skeletons crumbling after the shopkeeper was rescued: no kill, no drops
+        e.dead = 1;
+        part(e.x, e.y, "#cfcfe8", 10, 50);
+        continue;
+      }
       e.dead = 1;
       s.kills++;
+      dropCoins(e);
+      if (e.t == "skel" && s.r.t == "kidnap") s.r.sk = Math.max(0, s.r.sk - 1);
       part(
         e.x,
         e.y,

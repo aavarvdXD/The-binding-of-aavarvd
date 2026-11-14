@@ -13,5 +13,7 @@ export const DR = [
 export const R = (a, b) => a + Math.random() * (b - a),
   RI = (a) => Math.floor(Math.random() * a),
   D = (a, b, c, d) => Math.hypot(c - a, d - b);
+// A skeleton from the kidnap room that has not been attacked yet: it ignores the player and cannot be targeted by homing/chain/marks.
+export const isNeutral = (e) => e.t === "skel" && !e.host;
 // Shown on the title screen / console so you can tell which version the browser actually loaded (module caching).
 export const BUILD = "4-slot-loadout.2";

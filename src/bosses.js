@@ -10,16 +10,16 @@
 // burst damage can't skip a phase; if damage overshoots, the next phase starts just above its own threshold.
 import { R, RI } from "./util.js";
 import { sfx } from "./audio.js";
-import { BM, shotSpeed } from "./bindings.js";
+import { BM, has, shotSpeed } from "./bindings.js";
 import { eshot } from "./projectiles.js";
 import { mk } from "./enemies.js";
 import { part } from "./effects.js";
 import { toast } from "./ui.js";
 export const AUDITOR_HP = 220;
 const PHASES = [
-  { every: 2, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
+  { every: 3, speed: 26, bs: 1, audit: 8, count: 1, dur: 6.5 },
   {
-    every: 1.7,
+    every: 2,
     speed: 36,
     bs: 1.25,
     audit: 7,
@@ -30,7 +30,7 @@ const PHASES = [
     adds: "skull",
   },
   {
-    every: 1.5,
+    every: 1.7,
     speed: 44,
     bs: 1.4,
     audit: 6,
@@ -140,6 +140,7 @@ function attack(e, s, P) {
 function nextPhase(e, s) {
   e.ph++;
   const P = PHASES[e.ph];
+  if (e.ph === 2) s.hp = Math.min(has("blood") ? Math.floor(s.mh * 0.75) : s.mh, s.hp + 2);
   e.hp = Math.max(e.hp, phaseFloor(e, e.ph) + 1); // never skip the following phase
   e.inv = P.intro;
   e.tm = 0.9;

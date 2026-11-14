@@ -4,6 +4,7 @@ import { OY } from "./util.js";
 import { cv } from "./renderer.js";
 import { pickKey, activatePrimary } from "./ui.js";
 import { start } from "./game.js";
+import { interact } from "./shops.js";
 export const K = {};
 export let mx = 120,
   my = 88,
@@ -15,6 +16,7 @@ export function initInput() {
     if (S && S.mode == "pick") pickKey(e.key);
     if (e.key == "r" && S && (S.mode == "dead" || S.mode == "stairs")) start();
     if (e.key == "Enter" && !e.repeat) activatePrimary();
+    if (e.key.toLowerCase() == "e" && !e.repeat) interact(); // untie the shopkeeper / buy
   });
   addEventListener("keyup", (e) => (K[e.key.toLowerCase()] = 0));
   cv.addEventListener("mousemove", (e) => {

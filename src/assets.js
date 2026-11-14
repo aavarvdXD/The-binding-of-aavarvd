@@ -8,6 +8,9 @@ export const A = {
   octo: "assets/sprites/enemy_red_octopus.png",
   spirit: "assets/sprites/enemy_spirit.png",
   chest: "assets/sprites/enemy_mimic_chest.png",
+  keeper: "assets/sprites/npc_old_man.png",
+  bound: "assets/sprites/npc_old_man_bound.png", // 64x16: the shopkeeper tied up (down, up, left, right)
+  skel: "assets/sprites/enemy_skeleton.png",
   boss: "assets/sprites/boss_demon_cyclop_idle.png",
   bosshit: "assets/sprites/boss_demon_cyclop_hit.png",
   dun: "assets/tiles/ninja_dungeon_tileset.png",

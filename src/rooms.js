@@ -6,6 +6,7 @@ import { sfx } from "./audio.js";
 import { mk } from "./enemies.js";
 import { has, ASCEND_LIFE } from "./bindings.js";
 import { toast, pickScr, stairScr } from "./ui.js";
+import { assignSpecialRooms, setupSpecial, checkAutoRescue } from "./shops.js";
 // Random-walk layout of 8 rooms; the boss room is the one farthest (by door distance) from the spawn room.
 export function gen() {
   const m = {},
@@ -63,6 +64,7 @@ export function gen() {
   bs.t = "boss";
   bs.o.clear();
   bs.mimic = 0;
+  assignSpecialRooms(L); // shop + kidnap room (never the spawn or boss room)
   return L;
 }
 // Move the player into room r (di = index of the door they came through, or null at run start) and spawn its enemies.
@@ -79,7 +81,10 @@ export function enter(r, di) {
   S.arc = [];
   S.tel = [];
   S.ban = null;
+  S.npc = null;
+  S.cn = []; // coins left behind in the previous room are lost
   S.dmgRoom = 0; // Ascension: damage taken in this room
+  checkAutoRescue(); // explored every room except shop + boss -> the shopkeeper escapes
   if (di != null) {
     const d = DR[di];
     S.x = d.dx == 0 ? 120 : d.dx > 0 ? 218 : 22;
@@ -87,6 +92,7 @@ export function enter(r, di) {
   }
   if (r.t == "start" || r.clr) {
     r.open = true;
+    setupSpecial(r); // shop / kidnap room contents
     return;
   }
   r.open = false;
@@ -177,7 +183,7 @@ export function onBossDefeated(s) {
   SV.w++;
   save();
   toast("THE AUDITOR FALLS");
-  if (first) setTimeout(() => toast("UNLOCKED: REBOUND, BUGS"), 1300);
+  if (first) setTimeout(() => toast("SHOP UNLOCK: REBOUND, BUGS"), 1300);
   setTimeout(() => toast("GO BACK TO THE SPAWN ROOM"), 2600);
   sfx(300, 0.6, "triangle", 0.08, 400);
 }

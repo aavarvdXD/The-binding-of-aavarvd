@@ -12,6 +12,7 @@ import {
   drawTelegraphs,
 } from "./effects.js";
 import { drawHUD } from "./ui.js";
+import { bakeShop, drawShop, drawNpc, drawCoins } from "./shopview.js";
 export const cv = $("c"),
   g = cv.getContext("2d");
 export function spr(i, sx, sy, sw, sh, x, y, sc = 1) {
@@ -49,6 +50,7 @@ export function bake(r) {
     for (let x = 1; x < 14; x++)
       if (r.o.has(x + "," + y))
         q.drawImage(IM.dun, 112, 48, 16, 16, x * 16, y * 16, 16, 16);
+  if (r.t == "shop") bakeShop(q);
   const gr = q.createRadialGradient(120, 88, 40, 120, 88, 150);
   gr.addColorStop(0, "#0000");
   gr.addColorStop(1, "#000c");
@@ -114,7 +116,10 @@ export function draw() {
   }
   for (const p of s.pk)
     spr("heart", 0, 0, 9, 8, p.x, p.y + Math.sin(tt * 5) * 1.5, 1.2);
+  drawCoins(g, s, tt);
+  drawShop(g, s, tt);
   const ent = [];
+  if (s.npc) ent.push([s.npc.y, () => drawNpc(g, s, s.npc, tt)]);
   s.es.forEach((e) =>
     ent.push([
       e.y + (e.t == "boss" ? 20 : 0),
@@ -131,6 +136,7 @@ export function draw() {
           g.filter = "hue-rotate(150deg) saturate(1.6) brightness(1.5)"; // frozen
         else if (e.fz > 0) g.filter = "hue-rotate(150deg) brightness(1.15)"; // chilled
         else if (e.po > 0) g.filter = "hue-rotate(75deg) saturate(1.4)"; // poisoned
+        else if (e.t == "skel" && e.host) g.filter = "sepia(1) saturate(5) hue-rotate(-30deg)"; // hostile skeleton
         else if (e.t == "boss" && e.ph == 1) g.filter = "hue-rotate(35deg) saturate(1.7) brightness(1.1)"; // True Auditor
         else if (e.t == "boss" && e.ph == 2) g.filter = "hue-rotate(200deg) saturate(2) brightness(1.15)"; // Final Judgment
         if (e.t == "boss")
@@ -153,7 +159,13 @@ export function draw() {
             e.x,
             e.y + (e.aw && Math.floor(tt * 10) % 2 ? -1 : 0),
           );
-        else spr(e.t, e.dir * 16, fr * 16, 16, 16, e.x, e.y);
+        else if (e.t == "skel") {
+          // enemy_skeleton.png: 32x32 cells, columns down/up/left/right, rows 0-5 run, 6-13 idle, 14-18 sword attack
+          const moving = e.host || Math.abs(e.vx) + Math.abs(e.vy) > 1;
+          let row = moving ? Math.floor(tt * (e.host ? 10 : 7)) % 6 : 6 + (Math.floor(tt * 6) % 8);
+          if (e.host && Math.hypot(s.x - e.x, s.y - e.y) < 24) row = 14 + (Math.floor(tt * 12) % 5); // swings when close
+          spr("skel", e.dir * 32, row * 32, 32, 32, e.x, e.y - 2);
+        } else spr(e.t, e.dir * 16, fr * 16, 16, 16, e.x, e.y);
         g.restore();
         if (e.mk > 0 && has("watch")) {
           // Watcher mark: pulsing red ring with tick marks

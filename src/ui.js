@@ -10,6 +10,7 @@ import { heal } from "./player.js";
 import { checkSynergies } from "./synergies.js";
 import { g, spr } from "./renderer.js";
 import { start } from "./game.js";
+import { drawShopHint } from "./shopview.js";
 const ov = $("ov");
 export function hideOverlay() {
   ov.style.display = "none";
@@ -43,7 +44,7 @@ export function initLayout() {
     else if (a === "stay") stay();
     else if (a === "skip") skip();
     else if (a === "swap") swap(+t.dataset.i);
-    else if (a === "back") renderChoice();
+    else if (a === "back") buyCb ? skip() : renderChoice();
   });
 }
 export function toast(t) {
@@ -52,13 +53,16 @@ export function toast(t) {
 // Binding choice after a room is cleared. With MAX_BINDINGS equipped, taking a new Binding means replacing an equipped one
 // (second screen) and a SKIP button keeps the current loadout. cho = the 3 offered, pend = the one chosen for replacing.
 let cho = [],
-  pend = null;
+  pend = null,
+  buyCb = null; // shop purchase waiting for the Binding to be equipped (see offerBinding)
 export function pickScr() {
   S.mode = "pick";
   pend = null;
+  buyCb = null;
 
   const pool = BD.filter(
     (b) =>
+      !b.shop && // shop-exclusive Bindings are never offered as room rewards
       !S.own.includes(b.id) &&
       (!b.lock || SV.w > 0) &&
       !(S.own.includes("glass") && b.id === "twin") &&
@@ -104,6 +108,7 @@ function renderReplace() {
       )
       .join("") +
     '</div><div class="row"><button data-act="back">BACK [ESC]</button><button data-act="skip">SKIP</button></div>';
+  ov.style.display = "flex"; // (a shop purchase opens this screen while the overlay is still hidden)
 }
 // Offered card i was chosen (cards or keys 1-3).
 export function pick(i) {
@@ -133,6 +138,7 @@ export function swap(j) {
 export function skip() {
   if (S.mode != "pick") return;
   pend = null;
+  buyCb = null; // a shop purchase is cancelled: nothing is charged
   ov.style.display = "none";
   S.mode = "play";
   afterPick();
@@ -140,7 +146,7 @@ export function skip() {
 // Keyboard on the choice screens: 1-3 / 1-4 select, Esc = skip (offer) or back (replace screen).
 export function pickKey(k) {
   if (pend) {
-    if (k == "Escape") renderChoice();
+    if (k == "Escape") buyCb ? skip() : renderChoice();
     else if (/^[1-9]$/.test(k) && +k <= S.own.length) swap(+k - 1);
   } else if (k == "Escape") {
     if (S.own.length >= MAX_BINDINGS) skip();
@@ -179,10 +185,26 @@ function applyBinding(b) {
     S.hp += 8;
   }
   calcMaxHealth(S);
+  if (buyCb) {
+    const f = buyCb; // shop purchase: charge now that the Binding is really equipped
+    buyCb = null;
+    f();
+  }
   afterPick();
 }
+// Shop purchase of Binding b: equips it (the replace screen opens if the loadout is full). cb runs only if it got equipped.
+export function offerBinding(b, cb) {
+  buyCb = cb;
+  if (S.own.length >= MAX_BINDINGS) {
+    pend = b;
+    S.mode = "pick";
+    renderReplace();
+    return;
+  }
+  applyBinding(b);
+}
 export function deadScr() {
-  ov.innerHTML = `<h1>YOU ARE UNWRITTEN</h1><p>Rooms cleared: ${S.rs.filter((r) => r.clr).length} / ${S.rs.length} &middot; Kills: ${S.kills}</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ") || "none"}</p><p>Synergies found: ${SV.c.join(", ") || "none yet"}</p><div class="row"><button data-act="start">TRY AGAIN [R]</button></div>`;
+  ov.innerHTML = `<h1>YOU ARE UNWRITTEN</h1><p>Rooms cleared: ${S.rs.filter((r) => r.clr && r.t != "shop" && r.t != "kidnap").length} / ${S.rs.length - 2} &middot; Kills: ${S.kills} &middot; Coins: ${S.coins}</p><p>Bindings: ${S.own.map((i) => BM[i].n).join(", ") || "none"}</p><p>Synergies found: ${SV.c.join(", ") || "none yet"}</p><div class="row"><button data-act="start">TRY AGAIN [R]</button></div>`;
   ov.style.display = "flex";
 }
 export function stairScr() {
@@ -242,6 +264,9 @@ export function drawHUD(g, s) {
   });
   g.font = '8px "Press Start 2P",monospace';
   g.textAlign = "left";
+  g.drawImage(IM.dz, 96, 128, 16, 16, 140, 12, 9, 9); // coin counter
+  g.fillStyle = "#ffd36b";
+  g.fillText(String(s.coins), 151, 20);
   // Minimap: fixed-size cells (8x6 px, room = 6x4) in a window around the current room (+-2 columns, +-1 row), so the
   // squares never overlap however big the 12-room floor is. The current room is always in the middle.
   const mcx = 212,
@@ -260,7 +285,11 @@ export function drawHUD(g, s) {
           ? "#f55"
           : q.t == "start"
             ? "#3aa0ff"
-            : q.clr
+            : q.t == "shop" && q.vis
+              ? "#ffd23f"
+              : q.t == "kidnap" && q.vis
+                ? "#e07b39"
+                : q.clr
               ? "#7a5ad0"
               : "#3b2470";
     g.fillRect(px, py, 6, 4);
@@ -324,4 +353,5 @@ export function drawHUD(g, s) {
     g.textAlign = "center";
     g.fillText("WASD move  ARROWS fire", 120, OY + H - 14);
   }
+  drawShopHint(g, s);
 }

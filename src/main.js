@@ -7,6 +7,8 @@ import { startLoop, start } from "./game.js";
 import { S } from "./state.js";
 import { SV } from "./save.js";
 import { BM, BD } from "./bindings.js";
+import { enter } from "./rooms.js";
+import { rescue } from "./shops.js";
 
 initLayout();
 initInput();
@@ -36,6 +38,17 @@ if (new URLSearchParams(location.search).has("debug"))
         if (id == "def") S.hp = Math.max(1, S.hp - 8);
         console.log("Removed binding: " + id);
       }
+    },
+    // Shop tools: BOV.coins(50), BOV.rescue(), BOV.revealAll() (then walk into any room = automatic rescue), BOV.goto("shop"|"kidnap"|"boss")
+    coins: (n = 50) => {
+      S.coins += n;
+    },
+    rescue: () => rescue(true),
+    revealAll: () => S.rs.forEach((r) => (r.vis = true)),
+    goto: (t) => {
+      const r = S.rs.find((x) => x.t == t);
+      if (r) enter(r, null);
+      else console.error("No room of type " + t);
     },
     heal: () => {
       S.hp = S.mh;

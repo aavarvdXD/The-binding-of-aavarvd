@@ -3,11 +3,13 @@
 // Simple shot modifiers still live in fire()/volley() (projectiles.js); Paper Aegis / Bug Report in hurt() (player.js).
 // Every effect is gated with has(id), so the Auditor disabling a Binding switches its effect off immediately.
 import { S } from "./state.js";
-import { D, RI } from "./util.js";
+import { D, RI, isNeutral } from "./util.js";
 import { sfx } from "./audio.js";
 import { part } from "./effects.js";
 import { blk } from "./rooms.js";
 import { volley } from "./projectiles.js";
+import { provoke } from "./shops.js";
+import { itemCount } from "./items.js";
 // A run can equip at most this many Bindings; picking more means replacing one (see ui.js pick/swap/skip).
 export const MAX_BINDINGS = 5;
 export const BD = [
@@ -27,6 +29,7 @@ export const BD = [
   { id: "fat", n: "Binding of Weight", d: "One huge slow shot. Weakens homing." },
   {
     id: "pin",
+    shop: 1, // sold only in shops
     n: "Binding of Rebound",
     d: "Shots bounce 3 times off walls.",
     lock: 1,
@@ -35,6 +38,7 @@ export const BD = [
   { id: "leech", n: "Binding of Tithes", d: "Kills may heal you." },
   {
     id: "curse",
+    shop: 1, // sold only in shops
     n: "Binding of Bugs",
     d: "+70% damage. You take double damage.",
     lock: 1,
@@ -76,11 +80,13 @@ export const BD = [
   },
   {
     id: "void",
+    shop: 1, // sold only in shops
     n: "Binding of the Void",
     d: "Hits may open black holes that pull enemies in. Max health -2.",
   },
   {
     id: "ascend",
+    shop: 1, // sold only in shops
     n: "Binding of Ascension",
     d: "Clear a room unhurt for a shield. Base damage reduced.",
   },
@@ -128,6 +134,7 @@ export function volleyDamage(n) {
   if (has("reflect")) dm *= 0.75;
   if (has("decay")) dm *= 0.6;
   if (has("ascend")) dm *= 0.9;
+  dm *= Math.pow(1.12, itemCount("might")); // Might Tonic (shop)
   if (has("def")) dm *= 0.85;
   if (has("blood")) dm *= 1 + (1 - Math.max(0, S.hp) / S.mh) * 1.5;
   return dm;
@@ -136,6 +143,7 @@ export function volleyDamage(n) {
 export function calcMaxHealth(s) {
   let mh = 8;
   if (s.own.includes("def")) mh = 12;
+  mh += 2 * itemCount("vessel"); // Heart Container (shop)
   if (s.own.includes("void")) mh = Math.max(2, mh - 2);
   if (s.mh != mh) {
     s.mh = mh;
@@ -157,6 +165,7 @@ export const shotSpeed = (s) => (has("chrono") && s.slow > 0 ? CHRONO_SPEED : 1)
 // ---- all damage the player deals to an enemy goes through here, so every on-hit Binding stacks consistently
 // (shots, echoes, shards, chain lightning, black-hole collapse).
 export function damageEnemy(e, dmg) {
+  if (e.t === "skel") provoke(); // hitting a neutral skeleton makes the whole kidnap room hostile
   if (e.inv > 0) {
     part(e.x, e.y, "#ffffff", 2, 40); // Auditor between phases: untouchable
     return 0;
@@ -201,7 +210,7 @@ export function chain(e0, dmg, ox, oy) {
     let n = null,
       nd = 62;
     for (const e of S.es) {
-      if (seen.has(e) || e.dead || e.sp > 0 || (e.t == "spirit" && e.st == 1)) continue;
+      if (seen.has(e) || e.dead || e.sp > 0 || (e.t == "spirit" && e.st == 1) || isNeutral(e)) continue;
       const d = D(cur.x, cur.y, e.x, e.y);
       if (d < nd) {
         nd = d;
@@ -287,7 +296,7 @@ function updateHoles(s, dt) {
 
 // ---- Watcher: every few seconds one enemy is marked.
 function markOne(s) {
-  const c = s.es.filter((e) => !e.dead && !(e.mk > 0) && !(e.sp > 0) && !(e.t == "spirit" && e.st == 1));
+  const c = s.es.filter((e) => !e.dead && !(e.mk > 0) && !(e.sp > 0) && !(e.t == "spirit" && e.st == 1) && !isNeutral(e));
   if (!c.length) return;
   c[RI(c.length)].mk = MARK_LIFE;
   sfx(500, 0.1, "square", 0.03, 200);

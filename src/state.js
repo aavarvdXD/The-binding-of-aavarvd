@@ -57,6 +57,14 @@ export const createState = (rs) => ({
   // ban = big centred banner {lines,col,t,l} (boss phase changes); tel = Auditor stamp markers {x,y,t,l,n,v,src}.
   ban: null,
   tel: [],
+  // Shop system: coins = run money, items = passive items bought, resc = shopkeeper rescued (shop open),
+  // cn = coin pickups in this room {x,y,t}, npc = NPC in this room {t:"bound"|"keeper",x,y}, hint = interaction prompt.
+  coins: 0,
+  items: [],
+  resc: 0,
+  cn: [],
+  npc: null,
+  hint: null,
   // aimA = stored aim angle (starts facing down); ak = 1 while the keyboard owns the aim, 0 once the mouse moves.
   aimA: Math.PI / 2,
   ak: 1,

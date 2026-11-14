@@ -4,6 +4,7 @@ import { D } from "./util.js";
 import { K, mx, my, md } from "./input.js";
 import { sfx } from "./audio.js";
 import { has } from "./bindings.js";
+import { itemCount } from "./items.js";
 import { SV, save } from "./save.js";
 import { blk } from "./rooms.js";
 import { fire } from "./projectiles.js";
@@ -80,7 +81,7 @@ export function updatePlayer(s, dt) {
     iy = (K.s || 0) - (K.w || 0);
   if (ix || iy) {
     const l = Math.hypot(ix, iy),
-      v = (82 * dt) / l;
+      v = (82 * (1 + 0.1 * itemCount("swift")) * dt) / l; // Swift Tonic (shop)
     mvP(ix * v, iy * v);
     s.mv += dt;
   }

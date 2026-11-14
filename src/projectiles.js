@@ -1,6 +1,6 @@
 // Player shots (fire, homing, bounce, shatter, echo) and enemy shots.
 import { S } from "./state.js";
-import { R, D } from "./util.js";
+import { R, D, isNeutral } from "./util.js";
 import { sfx } from "./audio.js";
 import {
   has,
@@ -123,7 +123,7 @@ export function updateProjectiles(s, dt) {
       let n = null,
         nd = 100;
       for (const e of s.es)
-        if (!e.sp > 0 || 0) {
+        if ((!e.sp > 0 || 0) && !isNeutral(e)) {
           const d = D(b.x, b.y, e.x, e.y);
           if (d < nd) {
             nd = d;
