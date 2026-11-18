@@ -1,4 +1,4 @@
-# The Binding of Aavarvd
+# The Binding Below
 
 Browser roguelike (HTML5 canvas, plain ES modules, no build step, no backend).
 

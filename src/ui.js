@@ -219,7 +219,7 @@ export function stay() {
 }
 export function showTitle() {
   ov.innerHTML =
-    '<h1>THE BINDING<br>OF AAVARVD</h1><p>You are trapped in the Unwritten, a world built from broken rules.<br>Collect Bindings. Combine them. Break the game.</p><p>WASD move &middot; Arrow keys aim + fire &middot; Space fires<br>(Mouse aim + click also work)</p><div class="row"><button data-act="start">ENTER THE UNWRITTEN [ENTER]</button></div><p>' +
+    '<h1>THE BINDING<br>BELOW</h1><p>You are trapped in the Unwritten, a world built from broken rules.<br>Collect Bindings. Combine them. Break the game.</p><p>WASD move &middot; Arrow keys aim + fire &middot; Space fires<br>(Mouse aim + click also work)</p><div class="row"><button data-act="start">ENTER THE UNWRITTEN [ENTER]</button></div><p>' +
     (SV.w ? "Boss defeated x" + SV.w + " &middot; " : "") +
     "Synergies found: " +
     SV.c.length +
